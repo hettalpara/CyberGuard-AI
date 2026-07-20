@@ -1,0 +1,57 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/hooks/*": ["./hooks/*"],
+      "@/hooks": ["./hooks"],
+      "@/services/*": ["./services/*"],
+      "@/services": ["./services"],
+      "@/utils/*": ["./utils/*"],
+      "@/utils": ["./utils"],
+      "@/lib/*": ["./lib/*"],
+      "@/lib": ["./lib"],
+      "@/constants/*": ["./constants/*"],
+      "@/constants": ["./constants"],
+      "@/types/*": ["./types/*"],
+      "@/types": ["./types"],
+      "@/assets/*": ["./assets/*"],
+      "@/providers/*": ["./providers/*"],
+      "@/providers": ["./providers"],
+      "@/context/*": ["./context/*"],
+      "@/context": ["./context"],
+      "@/config/*": ["./config/*"],
+      "@/config": ["./config"],
+      "@/features/*": ["./features/*"],
+      "@/features": ["./features"],
+      "@/styles/*": ["./styles/*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}

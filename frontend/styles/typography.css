@@ -1,0 +1,18 @@
+/* ============================================================================
+ * Typography Styles
+ * Custom typography utilities beyond Tailwind defaults.
+ * ========================================================================== */
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, oklch(0.6 0.2 260) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-cyber {
+  background: linear-gradient(135deg, oklch(0.7 0.2 200) 0%, oklch(0.6 0.25 280) 50%, oklch(0.7 0.2 330) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
