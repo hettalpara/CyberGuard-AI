@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend — AI Cyber Crime Assistance Platform
 
-## Getting Started
+> Next.js 15 + React 19 + TypeScript + Tailwind CSS + ShadCN UI
 
-First, run the development server:
+## Setup
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Directory Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/                     # Next.js App Router
+│   ├── (auth)/              # Authentication route group
+│   ├── (dashboard)/         # Protected dashboard route group
+│   ├── api/                 # Next.js API routes (BFF proxy)
+│   ├── layout.tsx           # Root layout
+│   └── page.tsx             # Landing page
+│
+├── components/              # Reusable UI components
+│   ├── ui/                  # ShadCN UI primitives
+│   ├── shared/              # Cross-feature shared components
+│   ├── layout/              # Layout components (Navbar, Sidebar, Footer)
+│   ├── forms/               # Reusable form components
+│   └── charts/              # Recharts wrapper components
+│
+├── features/                # Feature-based modules
+│   ├── auth/                # Authentication feature
+│   ├── dashboard/           # Dashboard feature
+│   ├── reports/             # Crime reports feature
+│   ├── url-scanner/         # URL scanning feature
+│   └── threat-analysis/     # AI threat analysis feature
+│
+├── hooks/                   # Global custom React hooks
+├── lib/                     # Core utilities and configs
+│   └── validators/          # Zod validation schemas
+├── services/                # API service layer (Axios)
+├── store/                   # State management
+│   └── slices/              # State slices
+├── types/                   # Global TypeScript types
+├── utils/                   # Pure utility functions
+└── styles/                  # Global CSS & Tailwind config
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+public/                      # Static assets served at /
+tests/                       # Test suites
+├── e2e/                     # Playwright end-to-end tests
+└── unit/                    # Unit tests
+```
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Script | Description |
+|---|---|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run lint` | Run ESLint |
+| `npm run test` | Run unit tests |
+| `npm run test:e2e` | Run Playwright E2E tests |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
