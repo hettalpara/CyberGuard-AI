@@ -10,7 +10,6 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from "axios";
 import { API_CONFIG, AUTH_CONFIG } from "@/constants";
-import type { ApiError } from "@/types";
 
 function createApiClient(): AxiosInstance {
   const client = axios.create({
@@ -39,11 +38,14 @@ function createApiClient(): AxiosInstance {
   // ── Response interceptor: normalize errors ──────────────────────────
   client.interceptors.response.use(
     (response) => response,
-    (error: AxiosError<ApiError>) => {
+    (error: AxiosError<{ message?: string; error?: string }>) => {
       if (error.response?.status === 401 && typeof window !== "undefined") {
-        localStorage.removeItem(AUTH_CONFIG.tokenKey);
-        localStorage.removeItem(AUTH_CONFIG.refreshTokenKey);
-        window.location.href = "/login";
+        const path = window.location.pathname;
+        if (!path.startsWith("/login") && !path.startsWith("/register")) {
+          localStorage.removeItem(AUTH_CONFIG.tokenKey);
+          localStorage.removeItem(AUTH_CONFIG.refreshTokenKey);
+          window.location.href = "/login";
+        }
       }
       return Promise.reject(error);
     },

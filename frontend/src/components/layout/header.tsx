@@ -2,8 +2,9 @@
 
 import React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Bell, ShieldCheck, Activity, User, Settings, LogOut } from "lucide-react";
+import { Sun, Moon, Bell, ShieldCheck, Activity, User as UserIcon, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -15,14 +16,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/context/auth-context";
 
 export function Header() {
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
+
+  const displayName = user?.name || user?.fullName || "Analyst";
+  const displayEmail = user?.email || "analyst@cyberguard.ai";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase() || "CG";
 
   return (
     <header className="h-16 border-b border-[#E5E7EB] bg-white sticky top-0 z-30 flex items-center justify-between px-6">
@@ -79,22 +97,22 @@ export function Header() {
         <DropdownMenu>
           <DropdownMenuTrigger className="relative h-9 w-9 rounded-full cursor-pointer overflow-hidden border border-[#E5E7EB] focus:outline-none">
             <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-emerald-100 text-[#10B981] font-bold text-xs">VP</AvatarFallback>
+              <AvatarFallback className="bg-emerald-100 text-[#10B981] font-bold text-xs">{initials}</AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 bg-white border-[#E5E7EB] shadow-md rounded-xl p-1 text-xs">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="font-normal px-2 py-1.5">
                 <div className="flex flex-col space-y-0.5">
-                  <p className="text-xs font-bold text-[#1F2937]">Virani Pritkumar</p>
-                  <p className="text-[11px] text-slate-500 truncate">prit.virani@depstar.ac.in</p>
+                  <p className="text-xs font-bold text-[#1F2937]">{displayName}</p>
+                  <p className="text-[11px] text-slate-500 truncate">{displayEmail}</p>
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator className="bg-[#E5E7EB]" />
             <Link href="/profile">
               <DropdownMenuItem className="cursor-pointer rounded-lg text-slate-700 hover:bg-slate-50 flex items-center gap-2">
-                <User className="w-3.5 h-3.5 text-slate-400" /> Account Profile
+                <UserIcon className="w-3.5 h-3.5 text-slate-400" /> Account Profile
               </DropdownMenuItem>
             </Link>
             <Link href="/settings">
@@ -104,7 +122,7 @@ export function Header() {
             </Link>
             <DropdownMenuSeparator className="bg-[#E5E7EB]" />
             <DropdownMenuItem 
-              onClick={() => { if (typeof window !== "undefined") window.location.href = "/login"; }}
+              onClick={handleLogout}
               className="cursor-pointer rounded-lg text-red-600 hover:bg-red-50 flex items-center gap-2 font-medium"
             >
               <LogOut className="w-3.5 h-3.5" /> Log Out

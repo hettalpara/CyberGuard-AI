@@ -21,6 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { MAIN_NAV, USER_NAV } from "@/constants/navigation";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/auth-context";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "Dashboard": LayoutDashboard,
@@ -35,11 +36,19 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { logout } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const toggleSidebar = () => setIsCollapsed(!isCollapsed);
   const toggleMobile = () => setIsMobileOpen(!isMobileOpen);
+
+  const handleLogout = async () => {
+    await logout();
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  };
 
   const renderNavItems = (navItems: typeof MAIN_NAV) => {
     return navItems.map((item) => {
@@ -149,11 +158,7 @@ export function Sidebar() {
               "w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300",
               isCollapsed && "lg:justify-center lg:px-0"
             )}
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                window.location.href = "/login";
-              }
-            }}
+            onClick={handleLogout}
           >
             <LogOut className="h-4 w-4 shrink-0" />
             {(!isCollapsed || isMobileOpen) && <span>Log Out</span>}

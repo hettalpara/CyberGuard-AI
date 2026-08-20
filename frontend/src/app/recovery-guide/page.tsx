@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 export default function RecoveryGuidePage() {
   const categories = [
@@ -106,7 +107,8 @@ export default function RecoveryGuidePage() {
   const Icon = selected.icon;
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
+    <ProtectedRoute>
+      <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
@@ -201,5 +203,6 @@ export default function RecoveryGuidePage() {
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

@@ -12,7 +12,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import type { WithChildren, User } from "@/types";
+import type { WithChildren, User, RegisterPayload } from "@/types";
 import { authService } from "@/services";
 import { AUTH_CONFIG } from "@/constants";
 
@@ -21,8 +21,10 @@ interface AuthContextValue {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<{ success: boolean; message: string; user?: User }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUser: (updatedUser: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -34,8 +36,13 @@ export function AuthProvider({ children }: WithChildren) {
   const refreshUser = useCallback(async () => {
     try {
       const { data } = await authService.getMe();
-      setUser(data.data);
+      if (data && data.user) {
+        setUser(data.user);
+      } else {
+        setUser(null);
+      }
     } catch {
+      localStorage.removeItem(AUTH_CONFIG.tokenKey);
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -45,12 +52,20 @@ export function AuthProvider({ children }: WithChildren) {
   const login = useCallback(
     async (email: string, password: string) => {
       const { data } = await authService.login({ email, password });
-      localStorage.setItem(AUTH_CONFIG.tokenKey, data.data.accessToken);
-      localStorage.setItem(
-        AUTH_CONFIG.refreshTokenKey,
-        data.data.refreshToken,
-      );
-      setUser(data.data.user);
+      if (data.token) {
+        localStorage.setItem(AUTH_CONFIG.tokenKey, data.token);
+      }
+      if (data.user) {
+        setUser(data.user);
+      }
+    },
+    [],
+  );
+
+  const register = useCallback(
+    async (payload: RegisterPayload) => {
+      const { data } = await authService.register(payload);
+      return data;
     },
     [],
   );
@@ -58,6 +73,8 @@ export function AuthProvider({ children }: WithChildren) {
   const logout = useCallback(async () => {
     try {
       await authService.logout();
+    } catch {
+      // Ignore network error on logout
     } finally {
       localStorage.removeItem(AUTH_CONFIG.tokenKey);
       localStorage.removeItem(AUTH_CONFIG.refreshTokenKey);
@@ -65,9 +82,13 @@ export function AuthProvider({ children }: WithChildren) {
     }
   }, []);
 
+  const updateUser = useCallback((updatedUser: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...updatedUser } : null));
+  }, []);
+
   // Hydrate session on mount
   useEffect(() => {
-    const token = localStorage.getItem(AUTH_CONFIG.tokenKey);
+    const token = typeof window !== "undefined" ? localStorage.getItem(AUTH_CONFIG.tokenKey) : null;
     if (token) {
       refreshUser();
     } else {
@@ -82,8 +103,10 @@ export function AuthProvider({ children }: WithChildren) {
         isLoading,
         isAuthenticated: !!user,
         login,
+        register,
         logout,
         refreshUser,
+        updateUser,
       }}
     >
       {children}

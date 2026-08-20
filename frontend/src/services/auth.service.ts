@@ -1,30 +1,24 @@
 // ============================================================================
 // Auth Service
-// Handles all authentication API calls. Business logic stays in hooks.
+// Handles all authentication API calls.
 // ============================================================================
 
 import { apiClient } from "@/lib/api-client";
 import type {
-  ApiResponse,
-  AuthSession,
+  AuthResponse,
   LoginCredentials,
+  MeResponse,
   RegisterPayload,
-  User,
 } from "@/types";
 
 export const authService = {
   login: (credentials: LoginCredentials) =>
-    apiClient.post<ApiResponse<AuthSession>>("/auth/login", credentials),
+    apiClient.post<AuthResponse>("/auth/login", credentials),
 
   register: (payload: RegisterPayload) =>
-    apiClient.post<ApiResponse<AuthSession>>("/auth/register", payload),
+    apiClient.post<AuthResponse>("/auth/register", payload),
 
-  logout: () => apiClient.post<ApiResponse<null>>("/auth/logout"),
+  logout: () => apiClient.post<{ success: boolean; message: string }>("/auth/logout"),
 
-  getMe: () => apiClient.get<ApiResponse<User>>("/auth/me"),
-
-  refreshToken: (refreshToken: string) =>
-    apiClient.post<ApiResponse<AuthSession>>("/auth/refresh", {
-      refreshToken,
-    }),
+  getMe: () => apiClient.get<MeResponse>("/auth/me"),
 };

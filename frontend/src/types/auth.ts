@@ -3,25 +3,19 @@
 // Domain types for authentication, users, sessions, and role-based access.
 // ============================================================================
 
-export type UserRole = "admin" | "analyst" | "investigator" | "viewer";
+export type UserRole = "admin" | "analyst" | "investigator" | "viewer" | "user" | string;
 
 export interface User {
   id: string;
+  name: string;
   email: string;
-  fullName: string;
-  avatarUrl?: string;
   role: UserRole;
+  fullName?: string;
+  avatarUrl?: string;
   department?: string;
-  isActive: boolean;
-  createdAt: string;
+  isActive?: boolean;
+  createdAt?: string;
   lastLoginAt?: string;
-}
-
-export interface AuthSession {
-  user: User;
-  accessToken: string;
-  refreshToken: string;
-  expiresAt: string;
 }
 
 export interface LoginCredentials {
@@ -30,8 +24,19 @@ export interface LoginCredentials {
 }
 
 export interface RegisterPayload {
+  name: string;
   email: string;
   password: string;
-  fullName: string;
-  department?: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  token?: string;
+  user?: User;
+}
+
+export interface MeResponse {
+  success: boolean;
+  user: User;
 }

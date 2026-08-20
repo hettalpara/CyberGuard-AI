@@ -9,12 +9,15 @@
 import type { WithChildren } from "@/types";
 import { ThemeProvider } from "./theme-provider";
 import { ToastProvider } from "./toast-provider";
+import { AuthProvider } from "@/context/auth-context";
 
 export function Providers({ children }: WithChildren) {
   return (
     <ThemeProvider>
-      {children}
-      <ToastProvider />
+      <AuthProvider>
+        {children}
+        <ToastProvider />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

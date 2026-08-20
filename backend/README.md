@@ -1,79 +1,84 @@
-# AI Cyber Crime Assistance Platform — Backend
+# CyberGuard AI — Backend (Node.js + Express + TypeScript)
 
-FastAPI backend for the AI Cyber Crime Assistance Platform.
+Backend API service for the **AI Cyber Crime Assistance Platform (CyberGuard AI)**.
 
 ## Tech Stack
+- **Runtime:** Node.js (v20+)
+- **Framework:** Express.js
+- **Language:** TypeScript
+- **Database:** MongoDB Atlas (via Mongoose)
+- **Validation:** Zod
+- **Testing:** Jest + Supertest
 
-- **Python 3.11+**
-- **FastAPI** — async web framework
-- **Uvicorn** — ASGI server
-- **Pydantic v2** — data validation & settings
-- **SQLAlchemy 2.0** — ORM (configured in future phases)
-- **PostgreSQL** — relational database
-- **Alembic** — database migrations
-- **HTTPX** — async HTTP client
+---
 
-## Quick Start
+## Getting Started
 
+### 1. Install Dependencies
 ```bash
-# 1. Navigate to the backend directory
-cd backend
-
-# 2. Create and activate a virtual environment
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS / Linux
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Copy environment variables
-copy .env.example .env       # Windows
-# cp .env.example .env       # macOS / Linux
-
-# 5. Start the development server
-uvicorn app.main:app --reload --port 8000
+npm install
 ```
 
-## API Endpoints
-
-| Method | Path              | Description          |
-| ------ | ----------------- | -------------------- |
-| GET    | `/health`         | Health check (root)  |
-| GET    | `/api/v1/health`  | Health check (v1)    |
-| GET    | `/docs`           | Swagger UI           |
-| GET    | `/redoc`          | ReDoc documentation  |
-
-## Running Tests
-
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env`:
 ```bash
-pytest -v
+cp .env.example .env
+```
+Fill in your MongoDB Atlas connection URI:
+```env
+PORT=5000
+NODE_ENV=development
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net
+MONGODB_DATABASE=cyberguard
+FRONTEND_URL=http://localhost:3000
 ```
 
-## Project Structure
+### 3. Run Development Server
+```bash
+npm run dev
+```
 
+### 4. Build for Production
+```bash
+npm run build
+npm run start
+```
+
+### 5. Run Tests & Type Checks
+```bash
+npm run typecheck
+npm test
+```
+
+---
+
+## API Endpoints (Phase 1 Foundation)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Root health status |
+| `GET` | `/health/db` | MongoDB connectivity check |
+| `GET` | `/api/v1/health` | Versioned v1 health status |
+| `GET` | `/api/v1/health/db` | Versioned v1 MongoDB connectivity check |
+
+---
+
+## Directory Structure
 ```
 backend/
-├── app/
-│   ├── api/           # Route handlers
-│   ├── core/          # Configuration & shared setup
-│   ├── models/        # SQLAlchemy database models
-│   ├── schemas/       # Pydantic request/response schemas
-│   ├── services/      # Business logic & external integrations
-│   ├── utils/         # Shared utility functions
-│   └── main.py        # FastAPI application entry point
-├── tests/             # Pytest test suite
-├── .env.example       # Environment variable template
-├── requirements.txt   # Python dependencies
-└── README.md
+├── src/
+│   ├── config/          # Environment & Database configurations
+│   ├── controllers/     # Route controllers
+│   ├── middleware/      # Global error and validation middlewares
+│   ├── models/          # Mongoose database models (Phase 2+)
+│   ├── routes/          # API route definitions
+│   ├── services/        # Business logic services (Phase 2+)
+│   ├── types/           # TypeScript type definitions
+│   ├── utils/           # Helper utilities (logger, response formats)
+│   ├── app.ts           # Express application setup
+│   └── server.ts        # Server entry point & DB lifecycle
+├── tests/               # Test suites
+├── .env.example
+├── package.json
+└── tsconfig.json
 ```
-
-## Environment Variables
-
-| Variable        | Description                        | Default                                                |
-| --------------- | ---------------------------------- | ------------------------------------------------------ |
-| `APP_NAME`      | Application display name           | AI Cyber Crime Assistance Platform                     |
-| `APP_VERSION`   | Semantic version                   | 1.0.0                                                  |
-| `ENVIRONMENT`   | Deployment environment             | development                                            |
-| `DATABASE_URL`  | PostgreSQL connection string       | postgresql://postgres:postgres@localhost:5432/cybercrime_db |
-| `FRONTEND_URL`  | Frontend origin for CORS           | http://localhost:3000                                   |

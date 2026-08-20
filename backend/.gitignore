@@ -1,8 +1,21 @@
 # ── Environment ──────────────────────────────────────────────
 .env
+.env.local
+.env.*.local
 
-# ── Virtual Environment ─────────────────────────────────────
+# ── Node.js / TypeScript ────────────────────────────────────
+node_modules/
+dist/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+
+# ── Virtual Environment (FastAPI Legacy) ─────────────────────
 venv/
+.venv/
+env/
 
 # ── Python bytecode ─────────────────────────────────────────
 __pycache__/

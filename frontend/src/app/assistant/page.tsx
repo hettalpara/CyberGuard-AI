@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 
 interface Message {
   id: string;
@@ -76,7 +77,8 @@ export default function AiAssistantPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
+    <ProtectedRoute>
+      <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
@@ -148,5 +150,6 @@ export default function AiAssistantPage() {
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }

@@ -13,7 +13,7 @@ export const APP_CONFIG = {
 
 /** API configuration */
 export const API_CONFIG = {
-  baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1",
+  baseUrl: process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api",
   timeout: 30_000,
   retryAttempts: 3,
 } as const;

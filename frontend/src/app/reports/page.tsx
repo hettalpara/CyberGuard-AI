@@ -9,6 +9,7 @@ import { RiskMeter } from "@/components/common/risk-meter";
 import { SearchBar } from "@/components/common/search-bar";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { ProtectedRoute } from "@/components/auth/protected-route";
 import { generatePdfReport } from "@/utils/pdf-report-generator";
 
 interface ReportItem {
@@ -59,7 +60,8 @@ export default function ReportsPage() {
   );
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
+    <ProtectedRoute>
+      <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
@@ -141,5 +143,6 @@ export default function ReportsPage() {
         </main>
       </div>
     </div>
+    </ProtectedRoute>
   );
 }
