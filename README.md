@@ -1,10 +1,14 @@
 <div align="center">
 
-# 🛡️ AI Cyber Crime Assistance Platform
+# 🛡️ CyberGuard AI — AI Cyber Crime Assistance Platform
 
-**An intelligent, AI-powered platform for cyber crime analysis, threat detection, and digital forensics assistance.**
+**An intelligent, enterprise-grade full-stack platform for cyber crime incident analysis, real-time threat detection, and citizen cybersecurity assistance.**
 
-
+[![CI Pipeline](https://github.com/Prit99644/AI-Cyber-Crime-Assistant-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Prit99644/AI-Cyber-Crime-Assistant-Platform/actions/workflows/ci.yml)
+[![Node.js Version](https://img.shields.io/badge/Node.js-v20%2B-green.svg)](https://nodejs.org)
+[![Next.js Version](https://img.shields.io/badge/Next.js-16-black.svg)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 </div>
 
@@ -13,109 +17,104 @@
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Getting Started](#-getting-started)
-- [Environment Variables](#-environment-variables)
-- [Contributing](#-contributing)
+- [Key Features](#-key-features)
+- [Architecture & Tech Stack](#-architecture--tech-stack)
+- [Project Directory Structure](#-project-directory-structure)
+- [Quick Start Guide](#-quick-start-guide)
+  - [Option A: Docker Compose (Recommended)](#option-a-docker-compose-recommended)
+  - [Option B: Local Development](#option-b-local-development)
+- [Environment Configuration](#-environment-configuration)
+- [API Endpoints Reference](#-api-endpoints-reference)
+- [CI/CD & Deployment](#-cicd--deployment)
+- [Security & Best Practices](#-security--best-practices)
 - [License](#-license)
 
 ---
 
 ## 🔍 Overview
 
-The **AI Cyber Crime Assistance Platform** is a comprehensive web application designed to assist law enforcement, cybersecurity professionals, and citizens in identifying, analyzing, and reporting cyber crimes. It leverages artificial intelligence (Gemini API) and industry-standard cybersecurity APIs to provide real-time threat analysis, URL scanning, and intelligent crime classification.
+**CyberGuard AI** empowers citizens, IT professionals, and cybersecurity researchers with instant threat analysis, scam verification, cyber crime reporting guidance, and recovery playbooks. Built with a modern, high-performance architecture featuring **Next.js 16**, **Express + TypeScript**, and **MongoDB Atlas**, it offers high resilience, security, and responsive UX.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
 | Feature | Description |
 |---|---|
-| 🤖 AI-Powered Analysis | Gemini API integration for intelligent crime classification and assistance |
-| 🔗 URL Scanner | Google Safe Browsing & VirusTotal for malicious URL detection |
-| 🌐 WHOIS Lookup | Domain registration and ownership analysis |
-| 📊 Dashboard | Interactive analytics with Recharts visualization |
-| 📝 Report Filing | Structured cyber crime report submission system |
-| 🔒 Authentication | JWT-based secure authentication with role management |
-| 📱 Responsive Design | Mobile-first, fully responsive UI with ShadCN + Tailwind CSS |
+| 🔍 **Multi-Engine Threat Analyzer** | Scans URLs, domains, emails, and phone numbers for phishing, scams, and malware with real-time heuristic & API scoring. |
+| 🤖 **AI Cyber Assistant & Playbooks** | Step-by-step guidance for financial fraud, identity theft, unauthorized access, and cyber harassment. |
+| 📊 **Incident & Analytics Dashboard** | Real-time security scores, threat heatmaps, metrics, and incident activity monitoring. |
+| 📝 **Report Generator** | Structured evidence collection and cyber crime report formatting for law enforcement filing. |
+| 🔐 **Secure Authentication** | Stateless JWT authentication with salted bcrypt password hashing and role-based access control. |
+| 🌗 **Modern Reactive UI** | Responsive glassmorphic layout, dark/light theme support, micro-animations, and clean typography. |
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Architecture & Tech Stack
 
 ### Frontend
-| Technology | Purpose |
-|---|---|
-| Next.js 15 | React framework with App Router |
-| React 19 | UI component library |
-| TypeScript | Type safety |
-| Tailwind CSS | Utility-first styling |
-| ShadCN UI | Accessible component system |
-| Framer Motion | Animations |
-| React Hook Form + Zod | Form handling and validation |
-| Axios | HTTP client |
-| Recharts | Data visualization |
+- **Framework:** [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
+- **UI Library:** [React 19](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/) + Modern CSS design system
+- **Components & Icons:** Accessible component library + [Lucide React](https://lucide.dev/)
+- **Charts & Motion:** [Recharts](https://recharts.org/) + [Framer Motion](https://www.framer.com/motion/)
+- **State & HTTP:** [Axios](https://axios-http.com/) API client with token interceptors
 
 ### Backend
-| Technology | Purpose |
-|---|---|
-| FastAPI | High-performance Python API framework |
-| SQLAlchemy | ORM for database operations |
-| Pydantic | Data validation and serialization |
-| Alembic | Database migrations |
-| JWT | Authentication tokens |
+- **Runtime:** [Node.js](https://nodejs.org/) (v20 LTS)
+- **Framework:** [Express.js](https://expressjs.com/) (TypeScript)
+- **Database:** [MongoDB Atlas](https://www.mongodb.com/atlas) via [Mongoose ODM](https://mongoosejs.com/)
+- **Auth & Cryptography:** [JSON Web Tokens (JWT)](https://jwt.io/) + [bcryptjs](https://github.com/dcodeIO/bcrypt.js)
+- **Threat Intelligence:** Google Safe Browsing API, VirusTotal API integration layer
 
-### Infrastructure
-| Technology | Purpose |
-|---|---|
-| PostgreSQL | Primary database (Supabase) |
-| Supabase Storage | File and media storage |
-| Vercel | Frontend deployment |
-| Render | Backend deployment |
+### DevOps & Infrastructure
+- **Containerization:** Docker multi-stage production builds + Docker Compose
+- **Continuous Integration:** GitHub Actions CI Pipeline (Linting, TypeScript Typecheck, Production Build)
+- **Deployment Targets:** Vercel (Frontend), Render / Railway / AWS ECS (Backend), MongoDB Atlas (DB)
 
 ---
 
-## 📁 Project Structure
+## 📁 Project Directory Structure
 
-```
-AI-Cyber-Crime-Assistance-Platform/
-│
-├── frontend/                  # Next.js 15 frontend application
+```text
+AI-Cyber-Crime-Assistant-Platform/
+├── .github/
+│   └── workflows/
+│       └── ci.yml               # GitHub Actions CI Workflow
+├── assets/
+│   └── diagrams/                # Architectural & UML Diagrams
+├── backend/
 │   ├── src/
-│   │   ├── app/               # App Router (pages & layouts)
-│   │   ├── components/        # Reusable UI components
-│   │   ├── features/          # Feature-based modules
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── lib/               # Utilities & configurations
-│   │   ├── services/          # API service layer
-│   │   ├── store/             # State management
-│   │   ├── types/             # TypeScript type definitions
-│   │   ├── utils/             # Helper functions
-│   │   └── styles/            # Global styles
-│   ├── public/                # Static assets
-│   └── tests/                 # Frontend tests
-│
-├── backend/                   # FastAPI backend application
-│   ├── app/
-│   │   ├── api/v1/            # Versioned API endpoints
-│   │   ├── core/              # App configuration & settings
-│   │   ├── models/            # SQLAlchemy ORM models
-│   │   ├── schemas/           # Pydantic schemas
-│   │   ├── services/          # Business logic layer
-│   │   ├── repositories/      # Data access layer
-│   │   ├── database/          # DB connection & migrations
-│   │   ├── middleware/        # Request/response middleware
-│   │   ├── auth/              # Authentication & authorization
-│   │   └── utils/             # Backend utilities
-│   └── tests/                 # Backend tests
-│
-├── database/                  # Database schemas, seeds & backups
-├── docs/                      # Project documentation
-├── assets/                    # Design assets
-├── scripts/                   # Automation scripts
-├── .github/                   # GitHub Actions & templates
+│   │   ├── models/              # Mongoose DB Models (User, Scan, Report)
+│   │   ├── routes/              # Express API Routes (Auth, Users, Analyzer)
+│   │   ├── services/            # Threat Intelligence & Business Logic
+│   │   ├── utils/               # Helper Utilities
+│   │   ├── db.ts                # MongoDB Connection & Health
+│   │   ├── middleware.ts        # JWT Auth, Validation, Global Error Handlers
+│   │   └── server.ts            # Server Entry Point & Lifecycle
+│   ├── tests/                   # Verification & Integration Test Suites
+│   ├── Dockerfile               # Production Multi-Stage Backend Container
+│   ├── .dockerignore
+│   ├── .env.example
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/
+│   ├── src/
+│   │   ├── app/                 # Next.js App Router Pages
+│   │   ├── components/          # Reusable UI & Layout Components
+│   │   ├── lib/                 # API Client & Utilities
+│   │   ├── services/            # Frontend API Services
+│   │   ├── types/               # TypeScript Type Definitions
+│   │   └── styles/              # Global Styles
+│   ├── public/                  # Static Assets
+│   ├── Dockerfile               # Production Standalone Next.js Container
+│   ├── .dockerignore
+│   ├── .env.example
+│   ├── next.config.ts
+│   ├── package.json
+│   └── tsconfig.json
+├── docker-compose.yml           # Full-Stack Multi-Container Orchestration
+├── .env.example                 # Root Environment Template
 ├── .gitignore
 ├── LICENSE
 └── README.md
@@ -123,78 +122,123 @@ AI-Cyber-Crime-Assistance-Platform/
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Quick Start Guide
 
-### Prerequisites
+### Option A: Docker Compose (Recommended)
 
-- **Node.js** >= 20.x
-- **Python** >= 3.12
-- **PostgreSQL** >= 16
-- **Git**
+Run the entire full-stack platform with a single command:
 
-### Frontend Setup
+```bash
+# 1. Clone repository
+git clone https://github.com/Prit99644/AI-Cyber-Crime-Assistant-Platform.git
+cd AI-Cyber-Crime-Assistant-Platform
+
+# 2. Configure environment
+cp .env.example .env
+
+# 3. Start containers
+docker compose up --build -d
+```
+
+- **Frontend Web UI:** [http://localhost:3000](http://localhost:3000)
+- **Backend API:** [http://localhost:5000](http://localhost:5000)
+- **API Health Status:** [http://localhost:5000/api/health](http://localhost:5000/api/health)
+
+---
+
+### Option B: Local Development
+
+#### 1. Backend Setup
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+
+# Start development server with hot reload
+npm run dev
+```
+
+#### 2. Frontend Setup
 
 ```bash
 cd frontend
 npm install
 cp .env.example .env.local
+
+# Start Next.js development server
 npm run dev
 ```
 
-### Backend Setup
+---
+
+## 🔐 Environment Configuration
+
+### Backend Environment Variables (`backend/.env`)
+
+```env
+PORT=5000
+NODE_ENV=development
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/cyberguard
+FRONTEND_URL=http://localhost:3000
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRES_IN=7d
+
+# Threat Intelligence (Optional)
+GOOGLE_SAFE_BROWSING_API_KEY=your_google_safe_browsing_key
+VIRUSTOTAL_API_KEY=your_virustotal_key
+```
+
+### Frontend Environment Variables (`frontend/.env.local`)
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000/api
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+---
+
+## 📡 API Endpoints Reference
+
+### System & Health Checks
+- `GET /` — API Gateway Status
+- `GET /health` or `GET /api/health` — Service Uptime & Status
+- `GET /health/db` or `GET /api/health/db` — MongoDB Connection Health
+
+### Authentication (`/api/auth`)
+- `POST /api/auth/register` — User registration with hashed credentials
+- `POST /api/auth/login` — User authentication & JWT issuance
+- `GET /api/auth/me` — Current authenticated user profile
+
+### Threat Analyzer (`/api/analyzer`)
+- `POST /api/analyzer/scan` — Comprehensive threat analysis (URLs, domains, emails, phone numbers)
+- `GET /api/analyzer/history` — Authenticated scan history
+- `GET /api/analyzer/stats` — Overall scan analytics and risk metrics
+
+### User Management (`/api/users`)
+- `GET /api/users/profile` — Fetch user account details
+- `PUT /api/users/profile` — Update user profile information
+- `PUT /api/users/change-password` — Secure password update
+
+---
+
+## 🧪 CI/CD & Verification
+
+All commits and pull requests trigger automated checks via GitHub Actions:
+- **Linting:** ESLint 9 validation
+- **Type Checking:** TypeScript compiler verification (`tsc --noEmit`)
+- **Production Build:** Next.js standalone build & Express TypeScript compilation
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate    # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --reload
+# Run local verification in backend:
+cd backend && npm run typecheck && npm run build
+
+# Run local verification in frontend:
+cd frontend && npm run lint && npx tsc --noEmit && npm run build
 ```
-
----
-
-## 🔐 Environment Variables
-
-### Frontend (`frontend/.env.local`)
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-### Backend (`backend/.env`)
-```env
-DATABASE_URL=postgresql://user:password@localhost:5432/cybercrime_db
-SECRET_KEY=your_jwt_secret_key
-GEMINI_API_KEY=your_gemini_api_key
-GOOGLE_SAFE_BROWSING_API_KEY=your_key
-VIRUSTOTAL_API_KEY=your_key
-WHOIS_API_KEY=your_key
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_KEY=your_supabase_service_key
-```
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](./LICENSE) file for details.
-
----
-
-<div align="center">
-
-**Built with ❤️ for a safer digital world.**
-
-</div>
+This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
