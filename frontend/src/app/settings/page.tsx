@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
-import { Settings as SettingsIcon, Bell, Shield, Lock, Globe, Save, CheckCircle2 } from "lucide-react";
+import { Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -11,7 +11,6 @@ import { ProtectedRoute } from "@/components/auth/protected-route";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [notifications, setNotifications] = useState(true);
   const [privacySharing, setPrivacySharing] = useState(false);
   const [autoScan, setAutoScan] = useState(true);
@@ -20,7 +19,6 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     // Hydrate theme mode
     if (theme === "dark") {
       setThemeMode("Dark Mode");

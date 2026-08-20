@@ -4,7 +4,7 @@
 // ============================================================================
 
 import { apiClient } from "@/lib/api-client";
-import type { AuthResponse, MeResponse, User } from "@/types";
+import type { AuthResponse, User } from "@/types";
 
 export interface UpdateProfilePayload {
   name: string;
