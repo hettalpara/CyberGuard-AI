@@ -1,148 +1,343 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { FileText, Download, Trash2, Eye } from "lucide-react";
+import { 
+  FileText, 
+  Download, 
+  Trash2, 
+  Eye, 
+  Search, 
+  Plus, 
+  AlertCircle, 
+  Loader2, 
+  Filter, 
+  ExternalLink,
+  Calendar,
+  ShieldAlert,
+  FileCheck
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { RiskMeter } from "@/components/common/risk-meter";
-import { SearchBar } from "@/components/common/search-bar";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
-import { generatePdfReport } from "@/utils/pdf-report-generator";
+import { reportService } from "@/services/report.service";
+import { IncidentReport } from "@/types/api";
 
-interface ReportItem {
-  reportId: string;
-  url: string;
-  normalizedUrl: string;
-  riskScore: number;
-  threatLevel: "SAFE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-  status: "Completed" | "Flagged" | "Archived";
-  date: string;
-}
+type StatusFilter = "ALL" | "FINAL" | "DRAFT" | "ARCHIVED";
 
 export default function ReportsPage() {
+  const [reports, setReports] = useState<IncidentReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [reports, setReports] = useState<ReportItem[]>([
-    { reportId: "RPT-202608-001", url: "https://sbi-verify-account.xyz/login", normalizedUrl: "https://sbi-verify-account.xyz/login", riskScore: 88, threatLevel: "HIGH", status: "Flagged", date: "2026-08-06" },
-    { reportId: "RPT-202608-002", url: "https://github.com", normalizedUrl: "https://github.com", riskScore: 0, threatLevel: "SAFE", status: "Completed", date: "2026-08-06" },
-    { reportId: "RPT-202608-003", url: "http://update-paypal-security.com", normalizedUrl: "http://update-paypal-security.com", riskScore: 92, threatLevel: "CRITICAL", status: "Flagged", date: "2026-08-05" },
-    { reportId: "RPT-202608-004", url: "https://google.com", normalizedUrl: "https://google.com", riskScore: 5, threatLevel: "SAFE", status: "Completed", date: "2026-08-05" },
-    { reportId: "RPT-202608-005", url: "http://free-giftcard-claim.net", normalizedUrl: "http://free-giftcard-claim.net", riskScore: 65, threatLevel: "MEDIUM", status: "Flagged", date: "2026-08-04" },
-  ]);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const handleDelete = (id: string) => {
-    setReports(reports.filter((r) => r.reportId !== id));
+  const fetchReports = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const filter = statusFilter === "ALL" ? undefined : statusFilter;
+      const res = await reportService.getReports({
+        status: filter,
+        search: searchTerm || undefined,
+      });
+      setReports(res.data.data || []);
+    } catch (err: unknown) {
+      console.error("Failed to load reports:", err);
+      setError((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to load incident reports. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [statusFilter, searchTerm]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchReports();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [fetchReports]);
+
+  const handleDownloadPdf = async (report: IncidentReport) => {
+    try {
+      setDownloadingId(report._id);
+      await reportService.downloadReportPdf(report._id, `${report.reportId}.pdf`);
+    } catch (err: unknown) {
+      console.error("Failed to download PDF:", err);
+      alert("Failed to download PDF report. Please try again.");
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
-  const handleDownloadPdf = (report: ReportItem) => {
-    generatePdfReport({
-      reportId: report.reportId,
-      url: report.url,
-      normalizedUrl: report.normalizedUrl,
-      riskScore: report.riskScore,
-      threatLevel: report.threatLevel,
-      ssl: { valid: report.riskScore < 50, issuer: report.riskScore < 50 ? "DigiCert Global Root CA" : "Untrusted Issuer", validDaysRemaining: 365 },
-      whois: { registrar: report.riskScore < 50 ? "MarkMonitor Inc." : "NameCheap / Privately Protected", createdDate: "2026-01-01", domainAgeDays: report.riskScore < 50 ? 5000 : 5 },
-      safeBrowsing: { match: report.riskScore >= 50, threatType: report.riskScore >= 50 ? "SOCIAL_ENGINEERING (Phishing)" : undefined },
-      virusTotal: { detectionRatio: report.riskScore >= 50 ? "14 / 70" : "0 / 70", enginesFlagged: report.riskScore >= 50 ? 14 : 0, totalEngines: 70 },
-      aiExplanation: report.riskScore >= 50 
-        ? "Warning: High-risk phishing URL detected. Domain matches credentials harvesting patterns with recent WHOIS registration and flagged security engines." 
-        : "Safe URL: Domain exhibits clean SSL certificates, long domain age, and zero malware database flags.",
-      recommendedActions: report.riskScore >= 50 ? ["Do NOT open URL.", "Report link to helpline 1930.", "Rotate credentials."] : ["Domain verified clean."],
-      timestamp: report.date
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      setDeletingId(id);
+      await reportService.deleteReport(id);
+      setReports((prev) => prev.filter((r) => r._id !== id));
+      setDeleteConfirmId(null);
+    } catch (err: unknown) {
+      console.error("Failed to delete report:", err);
+      alert("Failed to delete report. Please try again.");
+    } finally {
+      setDeletingId(null);
+    }
   };
 
-  const filteredReports = reports.filter(
-    (r) => r.url.toLowerCase().includes(searchTerm.toLowerCase()) || r.reportId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getStatusBadge = (status: "DRAFT" | "FINAL" | "ARCHIVED") => {
+    switch (status) {
+      case "FINAL":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <FileCheck className="w-3 h-3" /> Final
+          </span>
+        );
+      case "DRAFT":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+            Draft
+          </span>
+        );
+      case "ARCHIVED":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+            Archived
+          </span>
+        );
+    }
+  };
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <div>
-              <h1 className="text-3xl font-extrabold text-[#1F2937] tracking-tight">Security Scan Reports</h1>
-              <p className="text-slate-500 text-xs sm:text-sm mt-1">Search, view, download PDF, or manage AI-generated analysis reports.</p>
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header />
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full">
+            {/* Page Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+              <div>
+                <h1 className="text-3xl font-extrabold text-[#1F2937] tracking-tight">Incident Reports</h1>
+                <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                  Manage official cybersecurity incident records, view multi-engine forensics, and export court-ready PDF documents.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Link href="/analyzer">
+                  <Button className="bg-[#10B981] hover:bg-[#059669] text-white px-5 h-10 rounded-xl font-semibold text-xs flex items-center gap-2 shadow-sm">
+                    <Plus className="w-4 h-4" /> New Incident Report
+                  </Button>
+                </Link>
+              </div>
             </div>
-            <Link href="/analyzer">
-              <Button className="bg-[#10B981] hover:bg-[#059669] text-white px-5 h-10 rounded-xl font-semibold text-xs flex items-center gap-2">
-                <FileText className="w-4 h-4" /> New URL Analysis
-              </Button>
-            </Link>
-          </div>
 
-          <Card className="border-[#E5E7EB] bg-white shadow-sm overflow-hidden">
-            <CardHeader className="pb-4 border-b border-[#E5E7EB]">
-              <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                <SearchBar value={searchTerm} onChange={setSearchTerm} placeholder="Search by Report ID or URL..." />
+            {/* Error Alert */}
+            {error && (
+              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+                <Button variant="outline" size="sm" onClick={fetchReports} className="text-xs h-7 border-red-300 hover:bg-red-100">
+                  Retry
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-700">
-                  <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-[#E5E7EB]">
-                    <tr>
-                      <th className="px-4 py-3">Report ID</th>
-                      <th className="px-4 py-3">URL</th>
-                      <th className="px-4 py-3">Risk Assessment</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Date</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E5E7EB]">
-                    {filteredReports.map((report) => (
-                      <tr key={report.reportId} className="hover:bg-slate-50 transition">
-                        <td className="px-4 py-3.5 font-mono font-bold text-[#1F2937]">{report.reportId}</td>
-                        <td className="px-4 py-3.5 font-mono max-w-xs truncate text-slate-800 font-medium">{report.url}</td>
-                        <td className="px-4 py-3.5">
-                          <RiskMeter score={report.riskScore} threatLevel={report.threatLevel} size="sm" />
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
-                            report.status === "Flagged" ? "bg-red-50 text-red-600 border-red-200" : "bg-emerald-50 text-emerald-600 border-emerald-200"
-                          }`}>
-                            {report.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5 text-slate-500">{report.date}</td>
-                        <td className="px-4 py-3.5 text-right space-x-1">
-                          <Link href={`/analyzer?url=${encodeURIComponent(report.url)}`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-[#10B981]" title="View Analysis">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          </Link>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-[#10B981]" title="Download PDF Report" onClick={() => handleDownloadPdf(report)}>
-                            <Download className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-500 hover:text-red-600" title="Delete Report" onClick={() => handleDelete(report.reportId)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
+            )}
+
+            {/* Filters and Search Bar */}
+            <Card className="border-[#E5E7EB] bg-white shadow-sm overflow-hidden mb-6">
+              <CardHeader className="p-4 border-b border-[#E5E7EB]">
+                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                  {/* Search Input */}
+                  <div className="relative w-full md:w-96">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Search by Report ID, Title, or URL..."
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-[#E5E7EB] rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition"
+                    />
+                  </div>
+
+                  {/* Status Tabs */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
+                    {(["ALL", "FINAL", "DRAFT", "ARCHIVED"] as StatusFilter[]).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setStatusFilter(tab)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                          statusFilter === tab
+                            ? "bg-white text-[#1F2937] shadow-sm"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        {tab === "ALL" ? "All Reports" : tab.charAt(0) + tab.slice(1).toLowerCase()}
+                      </button>
                     ))}
-                    {filteredReports.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-xs">
-                          No analysis reports found matching your search.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
+                  </div>
+                </div>
+              </CardHeader>
+
+              {/* Table / Content */}
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="py-20 flex flex-col items-center justify-center text-slate-400">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#10B981] mb-2" />
+                    <p className="text-xs">Loading incident records...</p>
+                  </div>
+                ) : reports.length === 0 ? (
+                  <div className="py-16 px-4 text-center max-w-md mx-auto">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#10B981] flex items-center justify-center mx-auto mb-3">
+                      <FileText className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-sm font-bold text-[#1F2937] mb-1">No Incident Reports Found</h3>
+                    <p className="text-xs text-slate-500 mb-6">
+                      {searchTerm || statusFilter !== "ALL"
+                        ? "No reports matched your search filters. Try clearing your search."
+                        : "You haven't generated any incident reports yet. Analyze a suspicious URL in the Analyzer and click 'Create Incident Report' to file an official report."}
+                    </p>
+                    <Link href="/analyzer">
+                      <Button className="bg-[#10B981] hover:bg-[#059669] text-white text-xs rounded-xl px-5">
+                        Analyze a URL to Get Started
+                      </Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-slate-700">
+                      <thead className="bg-slate-50 text-slate-500 font-semibold border-b border-[#E5E7EB]">
+                        <tr>
+                          <th className="px-5 py-3.5">Report ID</th>
+                          <th className="px-5 py-3.5">Incident Details</th>
+                          <th className="px-5 py-3.5">Threat Level</th>
+                          <th className="px-5 py-3.5">Status</th>
+                          <th className="px-5 py-3.5">Date</th>
+                          <th className="px-5 py-3.5 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E5E7EB]">
+                        {reports.map((report) => (
+                          <tr key={report._id} className="hover:bg-slate-50 transition group">
+                            {/* Report ID */}
+                            <td className="px-5 py-4">
+                              <Link 
+                                href={`/reports/${report._id}`}
+                                className="font-mono font-bold text-slate-900 hover:text-[#10B981] transition flex items-center gap-1.5"
+                              >
+                                {report.reportId}
+                              </Link>
+                              <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                                {report.incidentType.replace("_", " ")}
+                              </span>
+                            </td>
+
+                            {/* Details: Title & URL */}
+                            <td className="px-5 py-4 max-w-xs">
+                              <div className="font-semibold text-slate-900 truncate mb-1" title={report.title}>
+                                {report.title}
+                              </div>
+                              <div className="font-mono text-[11px] text-slate-500 truncate flex items-center gap-1" title={report.snapshot.url}>
+                                <span>{report.snapshot.url}</span>
+                              </div>
+                            </td>
+
+                            {/* Threat Level */}
+                            <td className="px-5 py-4">
+                              <RiskMeter score={report.snapshot.riskScore} threatLevel={report.snapshot.riskLevel} size="sm" />
+                            </td>
+
+                            {/* Status */}
+                            <td className="px-5 py-4">
+                              {getStatusBadge(report.status)}
+                            </td>
+
+                            {/* Date */}
+                            <td className="px-5 py-4 text-slate-500 font-medium">
+                              <div className="flex items-center gap-1 text-[11px]">
+                                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                                {new Date(report.incidentDate || report.createdAt).toLocaleDateString()}
+                              </div>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="px-5 py-4 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <Link href={`/reports/${report._id}`}>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-slate-600 hover:text-[#10B981] hover:bg-emerald-50 rounded-lg" 
+                                    title="View Full Report"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                </Link>
+
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 text-slate-600 hover:text-[#10B981] hover:bg-emerald-50 rounded-lg disabled:opacity-50" 
+                                  title="Download Official PDF" 
+                                  onClick={() => handleDownloadPdf(report)}
+                                  disabled={downloadingId === report._id}
+                                >
+                                  {downloadingId === report._id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin text-[#10B981]" />
+                                  ) : (
+                                    <Download className="w-4 h-4" />
+                                  )}
+                                </Button>
+
+                                {deleteConfirmId === report._id ? (
+                                  <div className="flex items-center gap-1 ml-1 bg-red-50 p-1 rounded-lg border border-red-200">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-2 text-[10px] font-bold text-red-600 hover:bg-red-100 rounded"
+                                      onClick={() => handleDelete(report._id)}
+                                      disabled={deletingId === report._id}
+                                    >
+                                      {deletingId === report._id ? "..." : "Confirm"}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 px-1.5 text-[10px] text-slate-500 hover:bg-slate-200 rounded"
+                                      onClick={() => setDeleteConfirmId(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-8 w-8 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg" 
+                                    title="Delete Report" 
+                                    onClick={() => setDeleteConfirmId(report._id)}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </main>
+        </div>
       </div>
-    </div>
     </ProtectedRoute>
   );
 }

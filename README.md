@@ -65,7 +65,7 @@
 - **Framework:** [Express.js](https://expressjs.com/) (TypeScript)
 - **Database:** [MongoDB Atlas](https://www.mongodb.com/atlas) via [Mongoose ODM](https://mongoosejs.com/)
 - **Auth & Cryptography:** [JSON Web Tokens (JWT)](https://jwt.io/) + [bcryptjs](https://github.com/dcodeIO/bcrypt.js)
-- **Threat Intelligence:** Google Safe Browsing API, VirusTotal API integration layer
+- **Threat Intelligence:** Google Safe Browsing API (v4 ThreatMatches), URLhaus Community API, VirusTotal Multi-Engine Intelligence
 
 ### DevOps & Infrastructure
 - **Containerization:** Docker multi-stage production builds + Docker Compose
@@ -184,9 +184,11 @@ FRONTEND_URL=http://localhost:3000
 JWT_SECRET=your_super_secret_jwt_key
 JWT_EXPIRES_IN=7d
 
-# Threat Intelligence (Optional)
+# Threat Intelligence & AI
 GOOGLE_SAFE_BROWSING_API_KEY=your_google_safe_browsing_key
+URLHAUS_AUTH_KEY=your_urlhaus_auth_key
 VIRUSTOTAL_API_KEY=your_virustotal_key
+GEMINI_API_KEY=your_gemini_api_key
 ```
 
 ### Frontend Environment Variables (`frontend/.env.local`)
@@ -214,6 +216,18 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - `POST /api/analyzer/scan` — Comprehensive threat analysis (URLs, domains, emails, phone numbers)
 - `GET /api/analyzer/history` — Authenticated scan history
 - `GET /api/analyzer/stats` — Overall scan analytics and risk metrics
+
+### AI Cybersecurity Assistant (`/api/assistant`)
+- `POST /api/assistant/chat` — Conversational AI security assistant with offensive refusal guardrails & optional scan context
+- `POST /api/assistant/scan-context` — Validate user-owned scan context for triage guidance
+
+### Incident Reports & PDF Generation (`/api/reports`)
+- `POST /api/reports` — Create an immutable incident report snapshot from a completed scan
+- `GET /api/reports` — Retrieve paginated list of user incident reports (supports `status` and `search` filters)
+- `GET /api/reports/:id` — Retrieve full incident report details by MongoDB ID or human-readable Report ID (`CG-YYYY-XXXXXX`)
+- `PATCH /api/reports/:id` — Update editable fields (title, description, incidentDate, source, userNotes, status)
+- `DELETE /api/reports/:id` — Delete an incident report while preserving original scan forensics
+- `GET /api/reports/:id/pdf` — Stream official binary PDF incident report (`application/pdf`) with redacted sensitive parameters
 
 ### User Management (`/api/users`)
 - `GET /api/users/profile` — Fetch user account details

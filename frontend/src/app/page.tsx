@@ -31,7 +31,7 @@ export default function LandingPage() {
     {
       icon: Search,
       title: "Real-time Multi-Engine Scanning",
-      desc: "Instant URL inspection combining SSL certificate validation, WHOIS domain age lookup, Google Safe Browsing, and VirusTotal threat database checks."
+      desc: "Instant URL inspection combining SSL certificate validation, Google Safe Browsing, URLhaus malware feeds, and VirusTotal threat database checks."
     },
     {
       icon: Cpu,
@@ -81,7 +81,7 @@ export default function LandingPage() {
           Smart Phishing URL Analyzer & Threat Detection
         </h1>
         <p className="text-slate-500 text-sm sm:text-base max-w-2xl mx-auto mt-4 leading-relaxed">
-          Instantly analyze suspicious links with automated SSL inspection, WHOIS domain age metrics, Google Safe Browsing, VirusTotal intelligence, and Gemini AI risk explanations.
+          Instantly analyze suspicious links with automated SSL inspection, Google Safe Browsing, URLhaus malware intelligence, VirusTotal consensus, and Gemini AI risk explanations.
         </p>
 
         <form onSubmit={handleHeroSubmit} className="mt-8 max-w-2xl mx-auto flex flex-col sm:flex-row gap-2 bg-white p-2 border border-[#E5E7EB] rounded-2xl shadow-sm">

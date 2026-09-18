@@ -4,17 +4,48 @@ export interface ScanUrlPayload {
   url: string;
 }
 
+export interface RiskFactorData {
+  name: string;
+  score: number | null;
+  weight: number;
+  contribution: number;
+  impact: string;
+  status: string;
+  reason: string;
+  available: boolean;
+  details?: Record<string, unknown>;
+}
+
+export interface AIAnalysisData {
+  available: boolean;
+  summary: string;
+  threatType?: string;
+  severity?: string;
+  explanation?: string;
+  keyIndicators?: string[];
+  recommendedActions?: string[];
+  confidenceNote?: string;
+  generatedAt?: string;
+  model?: string;
+  error?: string;
+}
+
 export interface ScanResultData {
   id: string;
   url: string;
   normalizedUrl: string;
   domain: string;
-  riskScore: number;
-  riskLevel: "SAFE" | "SUSPICIOUS" | "DANGEROUS" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  riskScore: number | null;
+  riskLevel: string;
+  confidence: number;
+  riskCalculationVersion?: string;
+  analysisStatus?: string;
   risk?: {
-    score: number;
-    level: "SAFE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+    score: number | null;
+    level: string;
     reasons: string[];
+    confidence: number;
+    factors: RiskFactorData[];
   };
   ssl: {
     enabled: boolean;
@@ -23,11 +54,44 @@ export interface ScanResultData {
     issuer?: string;
     validDaysRemaining?: number;
   };
-  safeBrowsing: {
+  sslAnalysis?: {
+    status: string;
+    protocol: string;
+    score: number | null;
+    level: string | null;
+    certificate?: Record<string, unknown>;
+    reason?: string;
+    checkedAt?: string;
+  };
+  urlIntelligence?: {
+    status: string;
+    score: number | null;
+    level: string;
+    indicators: Array<{ name: string; score: number; reason: string }>;
+    reasons: string[];
+    evidence?: Record<string, unknown>;
+  };
+  safeBrowsing?: {
     checked: boolean;
+    available: boolean;
+    status: string;
     threatDetected: boolean;
+    threatTypes?: string[];
+    score?: number | null;
+    reason?: string;
+    error?: string;
+    checkedAt?: string;
+  };
+  urlhaus?: {
+    available: boolean;
+    status: string;
+    match: boolean;
     threatType?: string;
-    status?: string;
+    tags?: string[];
+    confidence?: number;
+    reason?: string;
+    error?: string;
+    checkedAt?: string;
   };
   virusTotal: {
     checked: boolean;
@@ -45,6 +109,8 @@ export interface ScanResultData {
     status?: string;
     error?: string;
   };
+  riskFactors?: RiskFactorData[];
+  aiAnalysis?: AIAnalysisData;
   summary: string;
   aiExplanation?: string;
   recommendedActions?: string[];

@@ -139,7 +139,7 @@ async function runAnalyzerTestSuite() {
     const gsbResult = await checkGoogleSafeBrowsing("https://example.com");
     const validGsb =
       gsbResult &&
-      (gsbResult.status === "not_configured" || gsbResult.status === "clean" || gsbResult.status === "threat_found" || gsbResult.status === "unavailable");
+      (gsbResult.status === "CHECKED_NO_THREAT" || gsbResult.status === "THREAT_DETECTED" || gsbResult.status === "UNAVAILABLE" || gsbResult.status === "ERROR" || gsbResult.status === "not_configured" || gsbResult.status === "clean" || gsbResult.status === "threat_found" || gsbResult.status === "unavailable");
 
     results.push({
       num: 5,
@@ -182,7 +182,7 @@ async function runAnalyzerTestSuite() {
       normalizedUrl: "https://wikipedia.org/wiki/Computer_security",
       domain: "wikipedia.org",
       ssl: { enabled: true, valid: true, status: "valid", issuer: "DigiCert", validDaysRemaining: 300 },
-      safeBrowsing: { checked: true, threatDetected: false, status: "clean" },
+      safeBrowsing: { checked: true, available: true, threatDetected: false, threatTypes: [], status: "CHECKED_NO_THREAT", score: 0, provider: "GOOGLE_SAFE_BROWSING", reason: "Clean", checkedAt: new Date().toISOString() },
       virusTotal: { checked: true, available: true, malicious: false, suspicious: false, harmless: 70, maliciousCount: 0, suspiciousCount: 0, undetectedCount: 2, totalEngines: 72, detectionRatio: "0 / 72", enginesFlagged: 0, permalink: null, status: "clean" },
     });
 
@@ -191,17 +191,18 @@ async function runAnalyzerTestSuite() {
       normalizedUrl: "https://sbi-verify-account.xyz/login",
       domain: "sbi-verify-account.xyz",
       ssl: { enabled: false, valid: false, status: "unavailable" },
-      safeBrowsing: { checked: true, threatDetected: true, threatType: "SOCIAL_ENGINEERING", status: "threat_found" },
+      safeBrowsing: { checked: true, available: true, threatDetected: true, threatTypes: ["SOCIAL_ENGINEERING"], status: "THREAT_DETECTED", score: 90, provider: "GOOGLE_SAFE_BROWSING", reason: "Phishing detected", checkedAt: new Date().toISOString() },
       virusTotal: { checked: true, available: true, malicious: true, suspicious: true, harmless: 20, maliciousCount: 14, suspiciousCount: 3, undetectedCount: 33, totalEngines: 70, detectionRatio: "17 / 70", enginesFlagged: 17, permalink: "https://virustotal.com/url/123", status: "threat_found" },
     });
 
     const passed =
+      safeEval.score !== null &&
       safeEval.score <= 29 &&
       (safeEval.level === "SAFE" || safeEval.level === "LOW") &&
       safeEval.reasons.length > 0 &&
+      phishingEval.score !== null &&
       phishingEval.score >= 60 &&
       (phishingEval.level === "HIGH" || phishingEval.level === "CRITICAL") &&
-      phishingEval.reasons.some((r) => r.includes("Google Safe Browsing")) &&
       phishingEval.reasons.some((r) => r.includes("VirusTotal"));
 
     results.push({

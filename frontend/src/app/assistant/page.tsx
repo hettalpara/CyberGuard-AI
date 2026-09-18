@@ -1,48 +1,185 @@
 "use client";
 
-import React, { useState } from "react";
-import { Send, ArrowRight, Bot, User } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { 
+  Send, 
+  ArrowRight, 
+  Bot, 
+  User, 
+  RotateCcw, 
+  ShieldAlert, 
+  AlertCircle, 
+  Sparkles, 
+  AlertTriangle,
+  CheckCircle2,
+  ExternalLink
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
+import { assistantService } from "@/services/assistant.service";
 
 interface Message {
   id: string;
   sender: "user" | "assistant";
   text: string;
   timestamp: string;
+  isError?: boolean;
 }
+
+interface ScanContextState {
+  scanId: string;
+  url?: string;
+  riskScore?: number | null;
+  riskLevel?: string;
+  threatType?: string;
+}
+
+// ============================================================================
+// Safe Markdown Formatter (No dangerouslySetInnerHTML)
+// ============================================================================
+
+function renderInlineTokens(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return (
+        <strong key={i} className="font-bold text-slate-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return part;
+  });
+}
+
+function FormattedMessageContent({ content }: { content: string }) {
+  const lines = content.split("\n");
+
+  return (
+    <div className="space-y-1.5 text-xs leading-relaxed">
+      {lines.map((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return <div key={idx} className="h-1" />;
+        }
+
+        // Numbered list item: "1. ", "2. "
+        const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+        if (numMatch) {
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-1 my-0.5">
+              <span className="font-bold text-[#10B981] shrink-0 text-[11px]">{numMatch[1]}.</span>
+              <div className="flex-1">{renderInlineTokens(numMatch[2])}</div>
+            </div>
+          );
+        }
+
+        // Bullet list item: "- ", "* ", "• "
+        if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ")) {
+          const bulletText = trimmed.replace(/^[-*•]\s+/, "");
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-1 my-0.5">
+              <span className="text-[#10B981] font-bold shrink-0">•</span>
+              <div className="flex-1">{renderInlineTokens(bulletText)}</div>
+            </div>
+          );
+        }
+
+        return <p key={idx}>{renderInlineTokens(trimmed)}</p>;
+      })}
+    </div>
+  );
+}
+
+// ============================================================================
+// Assistant Page Component
+// ============================================================================
 
 export default function AiAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: "1",
+      id: "init_1",
       sender: "assistant",
-      text: "Hello! I am your specialized Cybersecurity AI Assistant. I answer questions related strictly to URL security analysis reports, phishing detection, SSL/WHOIS indicators, and cyber incident recovery steps.",
+      text: "Hello! I am CyberGuard AI, your defensive cybersecurity assistant. I can help you understand cyber threats, protect your accounts, respond to scam messages or phishing links, explain scan reports, and preserve evidence for reporting.",
       timestamp: "Just now"
     }
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [activeScan, setActiveScan] = useState<ScanContextState | null>(null);
+  const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  const sampleQuestions = [
-    "Is this URL safe?",
-    "Explain my latest analysis report.",
-    "What is phishing?",
-    "How do I recover from credential theft?"
+  // Parse scanId from URL query string if present
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const scanId = params.get("scanId");
+      if (scanId) {
+        setActiveScan({ scanId });
+        setMessages([
+          {
+            id: `scan_init_${Date.now()}`,
+            sender: "assistant",
+            text: `I have loaded your scan report (#${scanId.slice(-6).toUpperCase()}). You can ask me why this URL received its risk score, what indicators were flagged, or what immediate precautions to take.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+          }
+        ]);
+      }
+    }
+  }, []);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isTyping]);
+
+  // Quick Action questions
+  const defaultQuickActions = [
+    "Explain phishing",
+    "Check a suspicious message",
+    "What should I do after clicking a scam link?",
+    "How do I secure my account?",
+    "How do I report cybercrime?",
+    "What should I do if I entered my password?"
   ];
+
+  const scanQuickActions = [
+    "Why is this URL risky?",
+    "What should I do right now?",
+    "Explain the URL indicators",
+    "Is the SSL certificate trustworthy?"
+  ];
+
+  const activeActions = activeScan ? scanQuickActions : defaultQuickActions;
+
+  const handleClearChat = () => {
+    setActiveScan(null);
+    setStatusNotice(null);
+    setMessages([
+      {
+        id: `reset_${Date.now()}`,
+        sender: "assistant",
+        text: "How can I help with your cybersecurity? Ask any question about phishing, suspicious links, account safety, or incident response.",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      }
+    ]);
+  };
 
   const handleSend = async (textToSend?: string) => {
     const query = textToSend || input;
-    if (!query.trim()) return;
+    if (!query.trim() || isTyping) return;
+
+    setStatusNotice(null);
 
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id: `user_${Date.now()}`,
       sender: "user",
-      text: query,
+      text: query.trim(),
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
     };
 
@@ -50,106 +187,266 @@ export default function AiAssistantPage() {
     if (!textToSend) setInput("");
     setIsTyping(true);
 
-    setTimeout(() => {
-      let reply = "I specialize strictly in cybersecurity topics. Please ask me about analyzing web URLs, interpreting risk scores, SSL/WHOIS indicators, or recovering from online fraud.";
-      const lower = query.toLowerCase();
+    try {
+      // Build conversation history (excluding system greetings and errors)
+      const history = messages
+        .filter((m) => !m.isError)
+        .slice(-10)
+        .map((m) => ({
+          role: m.sender,
+          content: m.text,
+        }));
 
-      if (lower.includes("phishing")) {
-        reply = "Phishing is a social engineering attack where bad actors craft deceptive links or clone legitimate login pages (banks, social media) to trick users into revealing credentials, OTPs, or financial information.";
-      } else if (lower.includes("report") || lower.includes("explain")) {
-        reply = "Analysis reports evaluate risk indicators: SSL certificate validity, WHOIS domain registration age, Google Safe Browsing flags, and VirusTotal multi-engine scans into a 0-100 risk score with actionable triage advice.";
-      } else if (lower.includes("safe") || lower.includes("url") || lower.includes("link")) {
-        reply = "To check if a link is safe, paste it into the Smart URL Analyzer. The platform checks SSL certificates, domain age (new domains < 30 days are high risk), and multi-engine threat databases.";
-      } else if (lower.includes("recover") || lower.includes("stolen") || lower.includes("hack")) {
-        reply = "Immediate Recovery Steps: 1) Disconnect device from Wi-Fi. 2) Rotate account passwords from a clean device. 3) Enable 2FA. 4) Dial Helpline 1930 for financial frauds or report on cybercrime.gov.in.";
+      const response = await assistantService.sendMessage({
+        message: query.trim(),
+        scanId: activeScan?.scanId,
+        conversationHistory: history,
+      });
+
+      const rawData = response.data as any;
+      const replyText =
+        rawData?.message ||
+        rawData?.data?.content ||
+        rawData?.content ||
+        "I have analyzed your request. Ensure MFA is enabled across your accounts and never share OTPs or passwords.";
+
+      // Update scan context banner if backend provided fresh scan metadata
+      if (rawData?.context) {
+        setActiveScan((prev) => ({
+          scanId: rawData.context.scanId || prev?.scanId || "",
+          url: rawData.context.url || prev?.url,
+          riskScore: rawData.context.riskScore ?? prev?.riskScore,
+          riskLevel: rawData.context.riskLevel || prev?.riskLevel,
+          threatType: rawData.context.threatType || prev?.threatType,
+        }));
       }
 
       const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
+        id: `bot_${Date.now()}`,
         sender: "assistant",
-        text: reply,
+        text: replyText,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       };
 
       setMessages((prev) => [...prev, botMsg]);
+    } catch (err: any) {
+      console.warn("[ASSISTANT_UI] Backend error:", err);
+      const status = err?.response?.status;
+      const errBody = err?.response?.data;
+      let errorMsg = "Unable to reach the AI assistant. Please try again.";
+
+      if (status === 401) {
+        errorMsg = "Your session has expired. Please sign in again to use the assistant.";
+      } else if (status === 403) {
+        errorMsg = "You do not have permission to access the specified scan report.";
+        setActiveScan(null);
+      } else if (status === 429) {
+        errorMsg = "Too many requests. Please wait a moment and try again.";
+        setStatusNotice("Rate limit active: Maximum 20 requests per minute.");
+      } else if (status === 503 || errBody?.errorCode === "AI_UNAVAILABLE") {
+        errorMsg = "AI assistance is temporarily unavailable. You can still use the URL Analyzer and its deterministic security results.";
+      } else if (errBody?.message) {
+        errorMsg = errBody.message;
+      }
+
+      const botMsg: Message = {
+        id: `err_${Date.now()}`,
+        sender: "assistant",
+        text: errorMsg,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        isError: true,
+      };
+
+      setMessages((prev) => [...prev, botMsg]);
+    } finally {
       setIsTyping(false);
-    }, 600);
+    }
   };
 
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full flex flex-col h-[calc(100vh-4rem)]">
-          <div className="mb-4">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 bg-emerald-100 text-[#10B981] font-bold text-xs rounded-md">Cybersecurity Domain Specialist</span>
-            </div>
-            <h1 className="text-2xl font-extrabold text-[#1F2937] tracking-tight">AI Security Assistant</h1>
-            <p className="text-slate-500 text-xs mt-0.5">Ask questions about URL risk scores, SSL indicators, and incident recovery advice.</p>
-          </div>
+        <Sidebar />
+        <div className="flex-1 flex flex-col min-w-0">
+          <Header />
+          <main className="flex-1 p-3 sm:p-5 lg:p-6 max-w-4xl mx-auto w-full flex flex-col h-[calc(100vh-4rem)]">
+            
+            {/* Header & Title Section */}
+            <div className="mb-3 flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2.5 py-0.5 bg-emerald-100 text-[#10B981] font-bold text-[11px] rounded-md flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> Defensive Cybersecurity AI
+                  </span>
+                  {activeScan && (
+                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-semibold text-[11px] rounded-md border border-blue-200">
+                      Scan Context Active
+                    </span>
+                  )}
+                </div>
+                <h1 className="text-xl sm:text-2xl font-extrabold text-[#1F2937] tracking-tight">CyberGuard AI Assistant</h1>
+                <p className="text-slate-500 text-xs mt-0.5">
+                  Get practical guidance for cybersecurity threats, scams, suspicious links, and account security.
+                </p>
+              </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            {sampleQuestions.map((q, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSend(q)}
-                className="p-2.5 bg-white border border-[#E5E7EB] hover:border-[#10B981] hover:bg-emerald-50/50 rounded-xl text-left text-xs font-semibold text-slate-700 transition flex items-center justify-between group"
+              <Button
+                onClick={handleClearChat}
+                variant="outline"
+                size="sm"
+                className="text-slate-600 border-[#E5E7EB] hover:bg-slate-100 text-xs h-8 px-3 rounded-xl flex items-center gap-1.5 shrink-0 cursor-pointer"
+                title="Start a new chat session"
               >
-                <span className="truncate">{q}</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#10B981] shrink-0 ml-1" />
-              </button>
-            ))}
-          </div>
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">New Chat</span>
+              </Button>
+            </div>
 
-          <Card className="flex-1 border-[#E5E7EB] bg-white shadow-sm flex flex-col overflow-hidden">
-            <CardContent className="flex-1 p-4 overflow-y-auto space-y-4">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex items-start gap-3 ${msg.sender === "user" ? "flex-row-reverse" : "flex-row"}`}
-                >
-                  <div className={`p-2 rounded-xl text-white shrink-0 ${msg.sender === "user" ? "bg-[#111827]" : "bg-[#10B981]"}`}>
-                    {msg.sender === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+            {/* Active Scan Context Banner */}
+            {activeScan && (
+              <div className="mb-3 p-3 bg-slate-900 text-white rounded-xl shadow-sm flex items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <ShieldAlert className="w-4 h-4 text-[#10B981] shrink-0" />
+                  <div className="truncate">
+                    <span className="text-slate-400 font-medium">Analyzing scan: </span>
+                    <span className="font-bold text-white font-mono text-[11px]">
+                      {activeScan.url || `#${activeScan.scanId.slice(-8)}`}
+                    </span>
+                    {activeScan.riskLevel && (
+                      <span className="ml-2 font-semibold text-emerald-400">
+                        Risk: {activeScan.riskLevel} {activeScan.riskScore !== null && activeScan.riskScore !== undefined ? `(${activeScan.riskScore}/100)` : ""}
+                      </span>
+                    )}
                   </div>
-                  <div className={`max-w-[80%] rounded-xl p-3.5 text-xs leading-relaxed ${
-                    msg.sender === "user" 
-                      ? "bg-[#111827] text-white rounded-tr-none" 
-                      : "bg-slate-50 border border-[#E5E7EB] text-slate-800 rounded-tl-none font-medium"
-                  }`}>
-                    {msg.text}
-                    <div className={`text-[10px] mt-1.5 ${msg.sender === "user" ? "text-slate-400" : "text-slate-400"}`}>
-                      {msg.timestamp}
+                </div>
+                <button
+                  onClick={() => setActiveScan(null)}
+                  className="text-slate-400 hover:text-white text-[11px] underline shrink-0 cursor-pointer"
+                >
+                  Exit Scan Mode
+                </button>
+              </div>
+            )}
+
+            {/* Status / Rate limit alert banner */}
+            {statusNotice && (
+              <div className="mb-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>{statusNotice}</span>
+              </div>
+            )}
+
+            {/* Quick Actions Carousel / Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-2 no-scrollbar">
+              {activeActions.map((q, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleSend(q)}
+                  disabled={isTyping}
+                  className="px-3 py-1.5 bg-white border border-[#E5E7EB] hover:border-[#10B981] hover:bg-emerald-50/50 rounded-lg text-left text-xs font-medium text-slate-700 transition flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs group disabled:opacity-50 cursor-pointer"
+                >
+                  <span>{q}</span>
+                  <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-[#10B981] shrink-0" />
+                </button>
+              ))}
+            </div>
+
+            {/* Chat Bubble Container */}
+            <Card className="flex-1 border-[#E5E7EB] bg-white shadow-sm flex flex-col overflow-hidden rounded-2xl">
+              <CardContent className="flex-1 p-4 overflow-y-auto space-y-4">
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex items-start gap-2.5 sm:gap-3 ${
+                      msg.sender === "user" ? "flex-row-reverse" : "flex-row"
+                    }`}
+                  >
+                    <div
+                      className={`p-2 rounded-xl text-white shrink-0 ${
+                        msg.sender === "user" 
+                          ? "bg-[#111827]" 
+                          : msg.isError 
+                          ? "bg-amber-600" 
+                          : "bg-[#10B981]"
+                      }`}
+                    >
+                      {msg.sender === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                    </div>
+
+                    <div
+                      className={`max-w-[85%] sm:max-w-[78%] rounded-2xl p-3.5 ${
+                        msg.sender === "user"
+                          ? "bg-[#111827] text-white rounded-tr-none text-xs leading-relaxed"
+                          : msg.isError
+                          ? "bg-amber-50 border border-amber-200 text-amber-900 rounded-tl-none font-medium"
+                          : "bg-slate-50 border border-[#E5E7EB] text-slate-800 rounded-tl-none"
+                      }`}
+                    >
+                      {msg.sender === "user" ? (
+                        <p className="whitespace-pre-wrap">{msg.text}</p>
+                      ) : (
+                        <FormattedMessageContent content={msg.text} />
+                      )}
+
+                      <div
+                        className={`text-[10px] mt-1.5 ${
+                          msg.sender === "user" ? "text-slate-400 text-right" : "text-slate-400"
+                        }`}
+                      >
+                        {msg.timestamp}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {isTyping && (
-                <div className="flex items-center gap-2 text-xs text-slate-400 italic">
-                  <Bot className="w-4 h-4 text-[#10B981] animate-spin" /> AI Security Assistant is thinking...
-                </div>
-              )}
-            </CardContent>
+                ))}
 
-            <div className="p-3 border-t border-[#E5E7EB] bg-white">
-              <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask about phishing, URL reports, or security recovery..."
-                  className="bg-slate-50 border-[#E5E7EB] rounded-xl text-xs h-10 focus:ring-[#10B981] focus:border-[#10B981]"
-                />
-                <Button type="submit" className="bg-[#10B981] hover:bg-[#059669] text-white h-10 px-4 rounded-xl text-xs font-semibold">
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
-            </div>
-          </Card>
-        </main>
+                {/* Typing indicator */}
+                {isTyping && (
+                  <div className="flex items-center gap-2.5 text-xs text-slate-500 italic p-2 bg-emerald-50/50 rounded-xl border border-emerald-100/60 w-fit">
+                    <Bot className="w-4 h-4 text-[#10B981] animate-spin" />
+                    <span>CyberGuard AI is analyzing...</span>
+                  </div>
+                )}
+
+                <div ref={chatBottomRef} />
+              </CardContent>
+
+              {/* Chat Input Field */}
+              <div className="p-3 border-t border-[#E5E7EB] bg-white">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSend();
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={
+                      activeScan
+                        ? "Ask about this URL's score, indicators, or security advice..."
+                        : "Ask about phishing, scam links, account recovery, or cybercrime reporting..."
+                    }
+                    disabled={isTyping}
+                    maxLength={4000}
+                    className="bg-slate-50 border-[#E5E7EB] rounded-xl text-xs h-10 focus:ring-[#10B981] focus:border-[#10B981]"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={isTyping || !input.trim()}
+                    className="bg-[#10B981] hover:bg-[#059669] text-white h-10 px-4 rounded-xl text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-40"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </form>
+                <div className="mt-1 text-[10px] text-slate-400 text-center">
+                  CyberGuard AI Assistant provides defensive security guidance. Never share sensitive passwords or private banking OTPs.
+                </div>
+              </div>
+            </Card>
+          </main>
+        </div>
       </div>
-    </div>
     </ProtectedRoute>
   );
 }

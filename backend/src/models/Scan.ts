@@ -5,12 +5,28 @@ export interface IScan extends Document {
   url: string;
   normalizedUrl: string;
   domain: string;
-  riskScore: number;
-  riskLevel: "SAFE" | "SUSPICIOUS" | "DANGEROUS" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  riskScore: number | null;
+  riskLevel: string;
+  confidence: number;
+  riskCalculationVersion?: string;
+  analysisStatus?: string;
   risk: {
-    score: number;
-    level: "SAFE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+    score: number | null;
+    level: string;
     reasons: string[];
+    confidence: number;
+    factors: Array<{
+      name: string;
+      score: number | null;
+      weight: number;
+      contribution: number;
+      impact: string;
+      status: string;
+      reason: string;
+      available: boolean;
+      details?: Record<string, unknown>;
+    }>;
+    analysisStatus?: string;
   };
   ssl: {
     enabled: boolean;
@@ -20,12 +36,48 @@ export interface IScan extends Document {
     validDaysRemaining?: number;
     protocol?: string;
   };
+  sslAnalysis?: {
+    status: string;
+    protocol: string;
+    score: number | null;
+    level: string | null;
+    certificate: Record<string, unknown>;
+    reason: string;
+    checkedAt: string;
+  };
+  urlIntelligence?: {
+    status: string;
+    score: number | null;
+    level: string;
+    indicators: Array<{
+      name: string;
+      score: number;
+      reason: string;
+    }>;
+    reasons: string[];
+    evidence: Record<string, unknown>;
+  };
   safeBrowsing: {
     checked: boolean;
+    available: boolean;
+    status: string;
     threatDetected: boolean;
+    threatTypes: string[];
+    score?: number | null;
+    reason?: string;
+    checkedAt?: string;
+    error?: string;
+  };
+  urlhaus?: {
+    available: boolean;
+    status: string;
+    match: boolean;
     threatType?: string;
-    status?: string;
-    threats?: any[];
+    tags?: string[];
+    confidence?: number;
+    reason?: string;
+    checkedAt?: string;
+    error?: string;
   };
   virusTotal: {
     checked: boolean;
@@ -43,9 +95,23 @@ export interface IScan extends Document {
     status?: string;
     error?: string;
   };
+  riskFactors: any[];
   summary: string;
   aiExplanation?: string;
   recommendedActions?: string[];
+  aiAnalysis?: {
+    available: boolean;
+    summary: string;
+    threatType?: string;
+    severity?: string;
+    explanation?: string;
+    keyIndicators?: string[];
+    recommendedActions?: string[];
+    confidenceNote?: string;
+    generatedAt?: Date;
+    model?: string;
+    error?: string;
+  };
   scannedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -77,19 +143,54 @@ const scanSchema = new Schema<IScan>(
     },
     riskScore: {
       type: Number,
-      required: true,
+      required: false,
       min: 0,
       max: 100,
+      default: null,
     },
     riskLevel: {
       type: String,
       required: true,
       default: "SAFE",
     },
+    confidence: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
+    riskCalculationVersion: {
+      type: String,
+      default: "2.0",
+    },
+    analysisStatus: {
+      type: String,
+      default: "COMPLETE",
+    },
     risk: {
-      score: { type: Number, default: 0 },
+      score: { type: Number, default: null },
       level: { type: String, default: "SAFE" },
       reasons: { type: [String], default: [] },
+      confidence: { type: Number, default: 0 },
+      factors: { type: [Schema.Types.Mixed], default: [] },
+      analysisStatus: { type: String, default: "COMPLETE" },
+    },
+    urlIntelligence: {
+      status: { type: String, default: "UNAVAILABLE" },
+      score: { type: Number, default: null },
+      level: { type: String, default: null },
+      indicators: { type: [Schema.Types.Mixed], default: [] },
+      reasons: { type: [String], default: [] },
+      evidence: { type: Schema.Types.Mixed, default: {} },
+    },
+    sslAnalysis: {
+      status: { type: String, default: "UNAVAILABLE" },
+      protocol: { type: String },
+      score: { type: Number, default: null },
+      level: { type: String, default: null },
+      certificate: { type: Schema.Types.Mixed, default: {} },
+      reason: { type: String },
+      checkedAt: { type: String },
     },
     ssl: {
       enabled: { type: Boolean, default: false },
@@ -101,10 +202,25 @@ const scanSchema = new Schema<IScan>(
     },
     safeBrowsing: {
       checked: { type: Boolean, default: false },
+      available: { type: Boolean, default: false },
+      status: { type: String, default: "UNAVAILABLE" },
       threatDetected: { type: Boolean, default: false },
+      threatTypes: { type: [String], default: [] },
+      score: { type: Number, default: null },
+      reason: { type: String },
+      checkedAt: { type: String },
+      error: { type: String },
+    },
+    urlhaus: {
+      available: { type: Boolean, default: false },
+      status: { type: String, default: "UNAVAILABLE" },
+      match: { type: Boolean, default: false },
       threatType: { type: String },
-      status: { type: String, default: "not_checked" },
-      threats: { type: [Schema.Types.Mixed], default: [] },
+      tags: { type: [String], default: [] },
+      confidence: { type: Number },
+      reason: { type: String },
+      checkedAt: { type: String },
+      error: { type: String },
     },
     virusTotal: {
       checked: { type: Boolean, default: false },
@@ -122,6 +238,10 @@ const scanSchema = new Schema<IScan>(
       status: { type: String, default: "not_checked" },
       error: { type: String },
     },
+    riskFactors: {
+      type: Schema.Types.Mixed,
+      default: [],
+    },
     summary: {
       type: String,
       required: true,
@@ -132,6 +252,19 @@ const scanSchema = new Schema<IScan>(
     recommendedActions: {
       type: [String],
       default: [],
+    },
+    aiAnalysis: {
+      available: { type: Boolean, default: false },
+      summary: { type: String },
+      threatType: { type: String },
+      severity: { type: String },
+      explanation: { type: String },
+      keyIndicators: { type: [String], default: [] },
+      recommendedActions: { type: [String], default: [] },
+      confidenceNote: { type: String },
+      generatedAt: { type: Date },
+      model: { type: String },
+      error: { type: String },
     },
     scannedAt: {
       type: Date,

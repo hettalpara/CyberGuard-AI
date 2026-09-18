@@ -119,7 +119,7 @@ export default function SettingsPage() {
                   {/* Security */}
                   <div className="flex items-center justify-between py-2 border-b border-[#E5E7EB]">
                     <div>
-                      <span className="font-bold block text-sm text-[#1F2937]">Automatic Safe Browsing API Check</span>
+                      <span className="font-bold block text-sm text-[#1F2937]">Automatic Google Safe Browsing & URLhaus Check</span>
                       <span className="text-slate-500">Run background checks on external API threat endpoints automatically.</span>
                     </div>
                     <input

@@ -43,24 +43,59 @@ export function validateAndNormalizeUrl(rawUrl: string): UrlValidationResult {
     }
   }
 
+  // Check for bare scheme without host (e.g. http:// or https://)
+  if (/^https?:\/\/\s*$/i.test(trimmed)) {
+    return { isValid: false, error: "Invalid or malformed URL structure" };
+  }
+
+  // Check for other explicit schemes (e.g. malformed://)
+  const schemeMatch = trimmed.match(/^([a-zA-Z][a-zA-Z0-9+.-]*):/);
+  if (schemeMatch) {
+    const scheme = schemeMatch[1].toLowerCase();
+    if (scheme !== "http" && scheme !== "https") {
+      return { isValid: false, error: "Only HTTP and HTTPS protocols are supported" };
+    }
+  }
+
   // Prepend https:// if no protocol is given
   if (!/^https?:\/\//i.test(trimmed)) {
     trimmed = `https://${trimmed}`;
   }
 
-  let parsed: URL;
+  let protocol = "";
+  let hostname = "";
+  let port = "";
+  let pathname = "/";
+  let search = "";
+  let hash = "";
+
   try {
-    parsed = new URL(trimmed);
+    const parsed = new URL(trimmed);
+    protocol = parsed.protocol;
+    hostname = parsed.hostname.toLowerCase();
+    port = parsed.port;
+    pathname = parsed.pathname;
+    search = parsed.search;
+    hash = parsed.hash;
   } catch {
-    return { isValid: false, error: "Invalid or malformed URL structure" };
+    // Robust fallback for punycode / IDN domains that Node's strict WHATWG URL parser rejects
+    const urlRegex = /^(https?):\/\/([^/?#:]+)(?::(\d+))?(\/[^?#]*)?(\?[^#]*)?(#.*)?$/i;
+    const match = trimmed.match(urlRegex);
+    if (!match) {
+      return { isValid: false, error: "Invalid or malformed URL structure" };
+    }
+    protocol = match[1].toLowerCase() + ":";
+    hostname = match[2].toLowerCase();
+    port = match[3] || "";
+    pathname = match[4] || "/";
+    search = match[5] || "";
+    hash = match[6] || "";
   }
 
   // Ensure protocol is strictly http or https
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+  if (protocol !== "http:" && protocol !== "https:") {
     return { isValid: false, error: "Only HTTP and HTTPS protocols are supported" };
   }
-
-  const hostname = parsed.hostname.toLowerCase();
 
   // SSRF Protection: Check against private IPs & localhost
   for (const pattern of PRIVATE_IP_PATTERNS) {
@@ -74,19 +109,28 @@ export function validateAndNormalizeUrl(rawUrl: string): UrlValidationResult {
     return { isValid: false, error: "Invalid domain name in URL" };
   }
 
+  // Validate hostname labels (supports alphanumeric, hyphens, and xn-- punycode IDN labels)
+  const labels = hostname.split(".");
+  const labelRegex = /^(?:xn--[a-zA-Z0-9-_]+|[a-zA-Z0-9](?:[a-zA-Z0-9-_]*[a-zA-Z0-9])?)$/i;
+  for (const label of labels) {
+    if (!label || label.length > 63 || !labelRegex.test(label)) {
+      return { isValid: false, error: "Invalid domain name in URL" };
+    }
+  }
+
   // Extract domain (root domain / hostname)
   const domain = hostname.startsWith("www.") ? hostname.slice(4) : hostname;
 
-  // Build normalized URL
   // Remove default port
-  if ((parsed.protocol === "http:" && parsed.port === "80") || (parsed.protocol === "https:" && parsed.port === "443")) {
-    parsed.port = "";
+  if ((protocol === "http:" && port === "80") || (protocol === "https:" && port === "443")) {
+    port = "";
   }
 
-  let normalizedUrl = parsed.toString();
-  // If normalized URL ends with trailing slash on bare domain (e.g. https://example.com/), trim the trailing slash
-  if (parsed.pathname === "/" && !parsed.search && !parsed.hash) {
-    normalizedUrl = `${parsed.protocol}//${parsed.host}`;
+  const hostWithPort = port ? `${hostname}:${port}` : hostname;
+  let normalizedUrl = `${protocol}//${hostWithPort}${pathname}${search}${hash}`;
+  // If normalized URL ends with trailing slash on bare domain, trim trailing slash
+  if (pathname === "/" && !search && !hash) {
+    normalizedUrl = `${protocol}//${hostWithPort}`;
   }
 
   return {
@@ -94,6 +138,6 @@ export function validateAndNormalizeUrl(rawUrl: string): UrlValidationResult {
     normalizedUrl,
     domain,
     hostname,
-    protocol: parsed.protocol,
+    protocol,
   };
 }

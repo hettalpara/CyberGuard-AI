@@ -8,6 +8,8 @@ import { notFoundHandler, errorHandler } from "./middleware";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import analyzerRoutes from "./routes/analyzer.routes";
+import assistantRoutes from "./routes/assistant.routes";
+import reportRoutes from "./routes/report.routes";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -53,11 +55,28 @@ app.get("/", (_req: Request, res: Response) => {
 
 // General API Health Checks
 app.get(["/health", "/api/health"], (_req: Request, res: Response) => {
+  const isKeyConfigured = (val?: string, placeholder?: string) =>
+    Boolean(val && val.trim() !== "" && val !== placeholder && val !== "YOUR_API_KEY");
+
   res.status(200).json({
     status: "ok",
     uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     message: "AI Cyber Crime Assistance Platform backend is running",
+    providers: {
+      safeBrowsing: isKeyConfigured(process.env.GOOGLE_SAFE_BROWSING_API_KEY, "your_google_safe_browsing_api_key")
+        ? "configured"
+        : "not_configured",
+      urlhaus: isKeyConfigured(process.env.URLHAUS_AUTH_KEY, "your_urlhaus_auth_key")
+        ? "configured"
+        : "not_configured",
+      virusTotal: isKeyConfigured(process.env.VIRUSTOTAL_API_KEY, "your_virustotal_api_key")
+        ? "configured"
+        : "not_configured",
+      gemini: isKeyConfigured(process.env.GEMINI_API_KEY, "your_gemini_api_key")
+        ? "configured"
+        : "not_configured",
+    },
   });
 });
 
@@ -85,6 +104,10 @@ app.use("/api/users", userRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/analyzer", analyzerRoutes);
 app.use("/api/v1/analyzer", analyzerRoutes);
+app.use("/api/assistant", assistantRoutes);
+app.use("/api/v1/assistant", assistantRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/v1/reports", reportRoutes);
 
 // ─── 404 & Global Error Handling ───────────────────────────────
 app.use(notFoundHandler);

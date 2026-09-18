@@ -35,7 +35,7 @@ export async function checkUrlWithVirusTotal(url: string): Promise<VirusTotalRes
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     // VirusTotal v3 URL identifier is Base64 URL-safe without padding
     const urlId = Buffer.from(url)
@@ -147,7 +147,8 @@ export async function checkUrlWithVirusTotal(url: string): Promise<VirusTotalRes
       permalink,
       status: enginesFlagged > 0 ? "threat_found" : "clean",
     };
-  } catch {
+  } catch (err: any) {
+    const isTimeout = err?.name === "AbortError";
     return {
       checked: false,
       available: false,
@@ -157,7 +158,7 @@ export async function checkUrlWithVirusTotal(url: string): Promise<VirusTotalRes
       suspiciousCount: 0,
       undetectedCount: 0,
       totalEngines: 0,
-      error: "VirusTotal service unavailable",
+      error: isTimeout ? "VirusTotal request timed out after 6000ms" : "VirusTotal service unavailable",
       status: "unavailable",
     };
   }
