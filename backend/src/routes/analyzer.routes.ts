@@ -92,6 +92,75 @@ router.post("/scan", authMiddleware, scanRateLimiter, async (req: AuthRequest, r
 });
 
 // ============================================================================
+// GET /api/analyzer/stats (Protected, Authenticated User Metrics)
+// ============================================================================
+router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication token required",
+      });
+      return;
+    }
+
+    const userObjectId = new Types.ObjectId(req.user.id);
+
+    const [
+      totalScans,
+      safeScans,
+      lowRiskScans,
+      moderateRiskScans,
+      highRiskScans,
+      criticalScans,
+      avgScoreResult,
+    ] = await Promise.all([
+      Scan.countDocuments({ userId: userObjectId }),
+      Scan.countDocuments({ userId: userObjectId, riskLevel: "SAFE" }),
+      Scan.countDocuments({ userId: userObjectId, riskLevel: "LOW" }),
+      Scan.countDocuments({ userId: userObjectId, riskLevel: { $in: ["MODERATE", "MEDIUM"] } }),
+      Scan.countDocuments({ userId: userObjectId, riskLevel: "HIGH" }),
+      Scan.countDocuments({ userId: userObjectId, riskLevel: "CRITICAL" }),
+      Scan.aggregate([
+        { $match: { userId: userObjectId, riskScore: { $ne: null } } },
+        { $group: { _id: null, avgScore: { $avg: "$riskScore" } } },
+      ]),
+    ]);
+
+    const suspiciousScans = lowRiskScans + moderateRiskScans;
+    const dangerousScans = highRiskScans + criticalScans;
+    const threatScans = suspiciousScans + dangerousScans;
+    const cleanRatio = totalScans > 0 ? Number(((safeScans / totalScans) * 100).toFixed(1)) : 0;
+    const threatRatio = totalScans > 0 ? Number(((threatScans / totalScans) * 100).toFixed(1)) : 0;
+    const avgRiskScore = avgScoreResult.length > 0 ? Math.round(avgScoreResult[0].avgScore) : 0;
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalScans,
+        safeScans,
+        suspiciousScans,
+        dangerousScans,
+        threatScans,
+        highRiskScans,
+        criticalScans,
+        lowRiskScans,
+        moderateRiskScans,
+        cleanRatio,
+        threatRatio,
+        avgRiskScore,
+      },
+    });
+  } catch (error) {
+    console.error("Get analyzer stats error:", error instanceof Error ? error.message : error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error calculating security statistics",
+    });
+  }
+});
+
+// ============================================================================
 // GET /api/analyzer/history (Protected, Paginated)
 // ============================================================================
 router.get("/history", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {

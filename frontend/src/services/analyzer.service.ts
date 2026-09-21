@@ -134,6 +134,26 @@ export interface ScanHistoryResponse {
   };
 }
 
+export interface DashboardStats {
+  totalScans: number;
+  safeScans: number;
+  suspiciousScans: number;
+  dangerousScans: number;
+  threatScans: number;
+  highRiskScans: number;
+  criticalScans: number;
+  lowRiskScans: number;
+  moderateRiskScans: number;
+  cleanRatio: number;
+  threatRatio: number;
+  avgRiskScore: number;
+}
+
+export interface DashboardStatsResponse {
+  success: boolean;
+  stats: DashboardStats;
+}
+
 export const analyzerService = {
   scanUrl: (data: ScanUrlPayload) =>
     apiClient.post<ScanResponse>("/analyzer/scan", data),
@@ -143,4 +163,7 @@ export const analyzerService = {
 
   getScanById: (id: string) =>
     apiClient.get<ScanResponse>(`/analyzer/${id}`),
+
+  getDashboardStats: () =>
+    apiClient.get<DashboardStatsResponse>("/analyzer/stats"),
 };
