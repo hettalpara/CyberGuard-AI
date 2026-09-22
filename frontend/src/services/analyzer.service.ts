@@ -30,6 +30,15 @@ export interface AIAnalysisData {
   error?: string;
 }
 
+export interface SecurityFindingData {
+  source: string;
+  finding: string;
+  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+  explanation: string;
+  evidence?: string | Record<string, unknown>;
+  isConfirmedThreat?: boolean;
+}
+
 export interface ScanResultData {
   id: string;
   url: string;
@@ -40,12 +49,14 @@ export interface ScanResultData {
   confidence: number;
   riskCalculationVersion?: string;
   analysisStatus?: string;
+  findings?: SecurityFindingData[];
   risk?: {
     score: number | null;
     level: string;
     reasons: string[];
     confidence: number;
     factors: RiskFactorData[];
+    findings?: SecurityFindingData[];
   };
   ssl: {
     enabled: boolean;
@@ -115,12 +126,15 @@ export interface ScanResultData {
   aiExplanation?: string;
   recommendedActions?: string[];
   scannedAt: string;
+  reportId?: string;
   createdAt?: string;
 }
 
 export interface ScanResponse {
   success: boolean;
   scan: ScanResultData;
+  reportId?: string;
+  message?: string;
 }
 
 export interface ScanHistoryResponse {
@@ -154,9 +168,125 @@ export interface DashboardStatsResponse {
   stats: DashboardStats;
 }
 
+export interface EmailAnalysisPayload {
+  email: string;
+  headers?: string;
+}
+
+export interface EmailAuthCheckData {
+  status: "PASS" | "FAIL" | "MISSING" | "UNKNOWN";
+  record?: string;
+  details: string;
+  mechanism?: string;
+}
+
+export interface EmailHeaderMismatchData {
+  type: string;
+  description: string;
+  severity: "LOW" | "MEDIUM" | "HIGH";
+}
+
+export interface EmailHeaderAnalysisData {
+  from?: string;
+  fromDomain?: string;
+  replyTo?: string;
+  replyToDomain?: string;
+  returnPath?: string;
+  returnPathDomain?: string;
+  subject?: string;
+  messageId?: string;
+  date?: string;
+  mismatches: EmailHeaderMismatchData[];
+  headersPresent: string[];
+}
+
+export interface EmailAnalysisResult {
+  input: string;
+  email: string;
+  localPart: string;
+  domain: string;
+  isValidFormat: boolean;
+  validationStatus: "VALID" | "INVALID";
+  validationError?: string;
+  spf: EmailAuthCheckData;
+  dkim: EmailAuthCheckData;
+  dmarc: EmailAuthCheckData;
+  headers?: EmailHeaderAnalysisData;
+  domainInfo: {
+    domain: string;
+    hasMx: boolean;
+    isPunycode: boolean;
+    isFreeProvider: boolean;
+    isDisposable: boolean;
+  };
+  findings: string[];
+  warnings: string[];
+  riskScore: number;
+  riskLevel: "SAFE" | "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+  confidence: number;
+  summary: string;
+  analyzedAt: string;
+}
+
+export interface PhoneAnalysisPayload {
+  phone: string;
+  countryHint?: string;
+}
+
+export interface PhoneReputationData {
+  status: "AVAILABLE" | "UNKNOWN" | "UNAVAILABLE";
+  available: boolean;
+  spamScore?: number;
+  category?: string;
+  complaintsCount?: number;
+  reportedAsScam?: boolean;
+  details: string;
+}
+
+export interface PhoneAnalysisResult {
+  input: string;
+  normalized: string;
+  e164: string;
+  isValid: boolean;
+  validationStatus: "VALID" | "INVALID";
+  validationError?: string;
+  countryCode?: string;
+  countryName?: string;
+  callingCode?: string;
+  nationalNumber?: string;
+  lineType: "MOBILE" | "LANDLINE" | "TOLL_FREE" | "PREMIUM_RATE" | "VOIP_VIRTUAL" | "SATELLITE" | "UNKNOWN";
+  isHighRiskPrefix: boolean;
+  reputation: PhoneReputationData;
+  findings: string[];
+  warnings: string[];
+  riskScore: number;
+  riskLevel: "SAFE" | "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+  confidence: number;
+  summary: string;
+  analyzedAt: string;
+}
+
+export interface EmailAnalysisResponse {
+  success: boolean;
+  emailAnalysis: EmailAnalysisResult;
+  data: EmailAnalysisResult;
+}
+
+export interface PhoneAnalysisResponse {
+  success: boolean;
+  phoneAnalysis: PhoneAnalysisResult;
+  data: PhoneAnalysisResult;
+}
+
 export const analyzerService = {
   scanUrl: (data: ScanUrlPayload) =>
     apiClient.post<ScanResponse>("/analyzer/scan", data),
+
+  analyzeEmail: (data: EmailAnalysisPayload) =>
+    apiClient.post<EmailAnalysisResponse>("/analyzer/email", data),
+
+  analyzePhone: (data: PhoneAnalysisPayload) =>
+    apiClient.post<PhoneAnalysisResponse>("/analyzer/phone", data),
 
   getScanHistory: (params?: { page?: number; limit?: number }) =>
     apiClient.get<ScanHistoryResponse>("/analyzer/history", { params }),

@@ -11,6 +11,7 @@ import { calculateRiskScore } from "./risk-score.service";
 import { generateAnalysisSummary } from "./analysis-summary.service";
 import { generateSecurityExplanation } from "./ai-analysis.service";
 import { AIAnalysisResult } from "./ai/ai.interface";
+import { createAutomaticIncidentReportForScan } from "./report.service";
 
 export interface PerformScanParams {
   rawUrl: string;
@@ -336,6 +337,7 @@ export async function performUrlAnalysis(params: {
       reasons: risk.reasons,
       confidence: risk.confidence,
       factors: risk.factors,
+      findings: risk.findings,
       analysisStatus: risk.analysisStatus,
     },
     urlIntelligence: {
@@ -402,6 +404,7 @@ export async function performUrlAnalysis(params: {
       error: virusTotal.error,
     },
     riskFactors: risk.factors,
+    findings: risk.findings,
     summary: summaryData.summary,
     aiExplanation: aiAnalysis.available && aiAnalysis.explanation ? aiAnalysis.explanation : summaryData.aiExplanation,
     recommendedActions:
@@ -425,6 +428,17 @@ export async function performUrlAnalysis(params: {
   });
 
   console.log(`[Analyzer] MongoDB persistence completed: ${Date.now() - tMongoStart} ms`);
+
+  // 7. Automatically create official Incident Report for completed scan
+  try {
+    const reportDoc = await createAutomaticIncidentReportForScan(scanDoc, userId.toString());
+    if (reportDoc) {
+      scanDoc.reportId = reportDoc.reportId;
+    }
+  } catch (repErr: any) {
+    console.error(`[Analyzer] Automatic report creation error: ${repErr?.message || repErr}`);
+  }
+
   console.log(`[Analyzer] Total pipeline duration: ${Date.now() - startTime} ms`);
 
   return scanDoc;

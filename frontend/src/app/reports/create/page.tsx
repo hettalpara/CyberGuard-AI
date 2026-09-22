@@ -5,16 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   FileText,
-  Shield,
   AlertTriangle,
   ArrowLeft,
   CheckCircle2,
-  Lock,
   Eye,
   Send,
-  Save,
-  Globe,
-  Info
+  Save
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

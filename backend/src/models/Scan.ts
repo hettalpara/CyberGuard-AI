@@ -26,6 +26,14 @@ export interface IScan extends Document {
       available: boolean;
       details?: Record<string, unknown>;
     }>;
+    findings?: Array<{
+      source: string;
+      finding: string;
+      severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+      explanation: string;
+      evidence?: string;
+      isConfirmedThreat?: boolean;
+    }>;
     analysisStatus?: string;
   };
   ssl: {
@@ -96,6 +104,14 @@ export interface IScan extends Document {
     error?: string;
   };
   riskFactors: any[];
+  findings?: Array<{
+    source: string;
+    finding: string;
+    severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+    explanation: string;
+    evidence?: string;
+    isConfirmedThreat?: boolean;
+  }>;
   summary: string;
   aiExplanation?: string;
   recommendedActions?: string[];
@@ -113,6 +129,7 @@ export interface IScan extends Document {
     error?: string;
   };
   scannedAt: Date;
+  reportId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -173,6 +190,7 @@ const scanSchema = new Schema<IScan>(
       reasons: { type: [String], default: [] },
       confidence: { type: Number, default: 0 },
       factors: { type: [Schema.Types.Mixed], default: [] },
+      findings: { type: [Schema.Types.Mixed], default: [] },
       analysisStatus: { type: String, default: "COMPLETE" },
     },
     urlIntelligence: {
@@ -242,6 +260,10 @@ const scanSchema = new Schema<IScan>(
       type: Schema.Types.Mixed,
       default: [],
     },
+    findings: {
+      type: Schema.Types.Mixed,
+      default: [],
+    },
     summary: {
       type: String,
       required: true,
@@ -269,6 +291,10 @@ const scanSchema = new Schema<IScan>(
     scannedAt: {
       type: Date,
       default: Date.now,
+    },
+    reportId: {
+      type: String,
+      trim: true,
     },
   },
   {

@@ -1,98 +1,39 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import axios from "axios";
 import { 
-  Send, 
   ArrowRight, 
   Bot, 
-  User, 
   RotateCcw, 
-  ShieldAlert, 
-  AlertCircle, 
   Sparkles, 
-  AlertTriangle,
-  CheckCircle2,
-  ExternalLink
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { assistantService } from "@/services/assistant.service";
+import {
+  ScanContextBanner,
+  ChatMessage,
+  ChatInput,
+  type Message,
+  type ScanContextState,
+} from "@/components/assistant";
 
-interface Message {
-  id: string;
-  sender: "user" | "assistant";
-  text: string;
-  timestamp: string;
-  isError?: boolean;
-}
-
-interface ScanContextState {
-  scanId: string;
-  url?: string;
-  riskScore?: number | null;
-  riskLevel?: string;
-  threatType?: string;
-}
-
-// ============================================================================
-// Safe Markdown Formatter (No dangerouslySetInnerHTML)
-// ============================================================================
-
-function renderInlineTokens(text: string): React.ReactNode {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
-  return parts.map((part, i) => {
-    if (part.startsWith("**") && part.endsWith("**")) {
-      return (
-        <strong key={i} className="font-bold text-slate-900">
-          {part.slice(2, -2)}
-        </strong>
-      );
-    }
-    return part;
-  });
-}
-
-function FormattedMessageContent({ content }: { content: string }) {
-  const lines = content.split("\n");
-
-  return (
-    <div className="space-y-1.5 text-xs leading-relaxed">
-      {lines.map((line, idx) => {
-        const trimmed = line.trim();
-        if (!trimmed) {
-          return <div key={idx} className="h-1" />;
-        }
-
-        // Numbered list item: "1. ", "2. "
-        const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
-        if (numMatch) {
-          return (
-            <div key={idx} className="flex items-start gap-2 pl-1 my-0.5">
-              <span className="font-bold text-[#10B981] shrink-0 text-[11px]">{numMatch[1]}.</span>
-              <div className="flex-1">{renderInlineTokens(numMatch[2])}</div>
-            </div>
-          );
-        }
-
-        // Bullet list item: "- ", "* ", "• "
-        if (trimmed.startsWith("- ") || trimmed.startsWith("* ") || trimmed.startsWith("• ")) {
-          const bulletText = trimmed.replace(/^[-*•]\s+/, "");
-          return (
-            <div key={idx} className="flex items-start gap-2 pl-1 my-0.5">
-              <span className="text-[#10B981] font-bold shrink-0">•</span>
-              <div className="flex-1">{renderInlineTokens(bulletText)}</div>
-            </div>
-          );
-        }
-
-        return <p key={idx}>{renderInlineTokens(trimmed)}</p>;
-      })}
-    </div>
-  );
+interface AssistantChatResponse {
+  message?: string;
+  data?: { content?: string };
+  content?: string;
+  context?: {
+    scanId?: string;
+    url?: string;
+    riskScore?: number | null;
+    riskLevel?: string;
+    threatType?: string;
+  };
 }
 
 // ============================================================================
@@ -203,7 +144,7 @@ export default function AiAssistantPage() {
         conversationHistory: history,
       });
 
-      const rawData = response.data as any;
+      const rawData = response.data as unknown as AssistantChatResponse;
       const replyText =
         rawData?.message ||
         rawData?.data?.content ||
@@ -213,11 +154,11 @@ export default function AiAssistantPage() {
       // Update scan context banner if backend provided fresh scan metadata
       if (rawData?.context) {
         setActiveScan((prev) => ({
-          scanId: rawData.context.scanId || prev?.scanId || "",
-          url: rawData.context.url || prev?.url,
-          riskScore: rawData.context.riskScore ?? prev?.riskScore,
-          riskLevel: rawData.context.riskLevel || prev?.riskLevel,
-          threatType: rawData.context.threatType || prev?.threatType,
+          scanId: rawData.context?.scanId || prev?.scanId || "",
+          url: rawData.context?.url || prev?.url,
+          riskScore: rawData.context?.riskScore ?? prev?.riskScore,
+          riskLevel: rawData.context?.riskLevel || prev?.riskLevel,
+          threatType: rawData.context?.threatType || prev?.threatType,
         }));
       }
 
@@ -229,24 +170,27 @@ export default function AiAssistantPage() {
       };
 
       setMessages((prev) => [...prev, botMsg]);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn("[ASSISTANT_UI] Backend error:", err);
-      const status = err?.response?.status;
-      const errBody = err?.response?.data;
       let errorMsg = "Unable to reach the AI assistant. Please try again.";
 
-      if (status === 401) {
-        errorMsg = "Your session has expired. Please sign in again to use the assistant.";
-      } else if (status === 403) {
-        errorMsg = "You do not have permission to access the specified scan report.";
-        setActiveScan(null);
-      } else if (status === 429) {
-        errorMsg = "Too many requests. Please wait a moment and try again.";
-        setStatusNotice("Rate limit active: Maximum 20 requests per minute.");
-      } else if (status === 503 || errBody?.errorCode === "AI_UNAVAILABLE") {
-        errorMsg = "AI assistance is temporarily unavailable. You can still use the URL Analyzer and its deterministic security results.";
-      } else if (errBody?.message) {
-        errorMsg = errBody.message;
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        const errBody = err.response?.data as { errorCode?: string; message?: string } | undefined;
+
+        if (status === 401) {
+          errorMsg = "Your session has expired. Please sign in again to use the assistant.";
+        } else if (status === 403) {
+          errorMsg = "You do not have permission to access the specified scan report.";
+          setActiveScan(null);
+        } else if (status === 429) {
+          errorMsg = "Too many requests. Please wait a moment and try again.";
+          setStatusNotice("Rate limit active: Maximum 20 requests per minute.");
+        } else if (status === 503 || errBody?.errorCode === "AI_UNAVAILABLE") {
+          errorMsg = "AI assistance is temporarily unavailable. You can still use the URL Analyzer and its deterministic security results.";
+        } else if (errBody?.message) {
+          errorMsg = errBody.message;
+        }
       }
 
       const botMsg: Message = {
@@ -304,28 +248,10 @@ export default function AiAssistantPage() {
 
             {/* Active Scan Context Banner */}
             {activeScan && (
-              <div className="mb-3 p-3 bg-slate-900 text-white rounded-xl shadow-sm flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2 min-w-0">
-                  <ShieldAlert className="w-4 h-4 text-[#10B981] shrink-0" />
-                  <div className="truncate">
-                    <span className="text-slate-400 font-medium">Analyzing scan: </span>
-                    <span className="font-bold text-white font-mono text-[11px]">
-                      {activeScan.url || `#${activeScan.scanId.slice(-8)}`}
-                    </span>
-                    {activeScan.riskLevel && (
-                      <span className="ml-2 font-semibold text-emerald-400">
-                        Risk: {activeScan.riskLevel} {activeScan.riskScore !== null && activeScan.riskScore !== undefined ? `(${activeScan.riskScore}/100)` : ""}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => setActiveScan(null)}
-                  className="text-slate-400 hover:text-white text-[11px] underline shrink-0 cursor-pointer"
-                >
-                  Exit Scan Mode
-                </button>
-              </div>
+              <ScanContextBanner
+                activeScan={activeScan}
+                onExit={() => setActiveScan(null)}
+              />
             )}
 
             {/* Status / Rate limit alert banner */}
@@ -355,48 +281,7 @@ export default function AiAssistantPage() {
             <Card className="flex-1 border-[#E5E7EB] bg-white shadow-sm flex flex-col overflow-hidden rounded-2xl">
               <CardContent className="flex-1 p-4 overflow-y-auto space-y-4">
                 {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex items-start gap-2.5 sm:gap-3 ${
-                      msg.sender === "user" ? "flex-row-reverse" : "flex-row"
-                    }`}
-                  >
-                    <div
-                      className={`p-2 rounded-xl text-white shrink-0 ${
-                        msg.sender === "user" 
-                          ? "bg-[#111827]" 
-                          : msg.isError 
-                          ? "bg-amber-600" 
-                          : "bg-[#10B981]"
-                      }`}
-                    >
-                      {msg.sender === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-                    </div>
-
-                    <div
-                      className={`max-w-[85%] sm:max-w-[78%] rounded-2xl p-3.5 ${
-                        msg.sender === "user"
-                          ? "bg-[#111827] text-white rounded-tr-none text-xs leading-relaxed"
-                          : msg.isError
-                          ? "bg-amber-50 border border-amber-200 text-amber-900 rounded-tl-none font-medium"
-                          : "bg-slate-50 border border-[#E5E7EB] text-slate-800 rounded-tl-none"
-                      }`}
-                    >
-                      {msg.sender === "user" ? (
-                        <p className="whitespace-pre-wrap">{msg.text}</p>
-                      ) : (
-                        <FormattedMessageContent content={msg.text} />
-                      )}
-
-                      <div
-                        className={`text-[10px] mt-1.5 ${
-                          msg.sender === "user" ? "text-slate-400 text-right" : "text-slate-400"
-                        }`}
-                      >
-                        {msg.timestamp}
-                      </div>
-                    </div>
-                  </div>
+                  <ChatMessage key={msg.id} message={msg} />
                 ))}
 
                 {/* Typing indicator */}
@@ -411,38 +296,13 @@ export default function AiAssistantPage() {
               </CardContent>
 
               {/* Chat Input Field */}
-              <div className="p-3 border-t border-[#E5E7EB] bg-white">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSend();
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  <Input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={
-                      activeScan
-                        ? "Ask about this URL's score, indicators, or security advice..."
-                        : "Ask about phishing, scam links, account recovery, or cybercrime reporting..."
-                    }
-                    disabled={isTyping}
-                    maxLength={4000}
-                    className="bg-slate-50 border-[#E5E7EB] rounded-xl text-xs h-10 focus:ring-[#10B981] focus:border-[#10B981]"
-                  />
-                  <Button
-                    type="submit"
-                    disabled={isTyping || !input.trim()}
-                    className="bg-[#10B981] hover:bg-[#059669] text-white h-10 px-4 rounded-xl text-xs font-semibold shrink-0 cursor-pointer disabled:opacity-40"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </form>
-                <div className="mt-1 text-[10px] text-slate-400 text-center">
-                  CyberGuard AI Assistant provides defensive security guidance. Never share sensitive passwords or private banking OTPs.
-                </div>
-              </div>
+              <ChatInput
+                input={input}
+                setInput={setInput}
+                onSend={handleSend}
+                disabled={isTyping}
+                activeScan={activeScan}
+              />
             </Card>
           </main>
         </div>

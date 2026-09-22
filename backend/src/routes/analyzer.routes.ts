@@ -3,6 +3,8 @@ import { Types } from "mongoose";
 import { Scan } from "../models/Scan";
 import { authMiddleware, AuthRequest } from "../middleware";
 import { performUrlAnalysis } from "../services/analyzer.service";
+import { analyzeEmail } from "../services/email-analyzer.service";
+import { analyzePhone } from "../services/phone-analyzer.service";
 
 const router = Router();
 
@@ -75,6 +77,7 @@ router.post("/scan", authMiddleware, scanRateLimiter, async (req: AuthRequest, r
     res.status(200).json({
       success: true,
       scan: scanDoc,
+      reportId: scanDoc.reportId,
     });
   } catch (error: any) {
     const errorMsg = error instanceof Error ? error.message : "Internal error during URL analysis";
@@ -92,11 +95,145 @@ router.post("/scan", authMiddleware, scanRateLimiter, async (req: AuthRequest, r
 });
 
 // ============================================================================
+// POST /api/analyzer/email (Protected, Rate-Limited)
+// ============================================================================
+router.post("/email", authMiddleware, scanRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication token required",
+      });
+      return;
+    }
+
+    const { email, headers } = req.body;
+
+    if (!email || typeof email !== "string" || email.trim() === "") {
+      res.status(400).json({
+        success: false,
+        message: "Email address is required and cannot be empty",
+      });
+      return;
+    }
+
+    if (email.length > 320) {
+      res.status(400).json({
+        success: false,
+        message: "Email address exceeds maximum permitted length (320 characters)",
+      });
+      return;
+    }
+
+    if (headers !== undefined && typeof headers !== "string") {
+      res.status(400).json({
+        success: false,
+        message: "Headers must be a string",
+      });
+      return;
+    }
+
+    if (headers && headers.length > 100 * 1024) {
+      res.status(400).json({
+        success: false,
+        message: "Headers exceed maximum permitted length (100KB)",
+      });
+      return;
+    }
+
+    const result = await analyzeEmail({
+      email: email.trim(),
+      headers: headers ? headers.trim() : undefined,
+    });
+
+    res.status(200).json({
+      success: true,
+      emailAnalysis: result,
+      data: result,
+    });
+  } catch (error: any) {
+    const errorMsg = error instanceof Error ? error.message : "Internal error during email analysis";
+    const isValidationErr =
+      errorMsg.includes("Invalid") ||
+      errorMsg.includes("required") ||
+      errorMsg.includes("exceeds");
+
+    res.status(isValidationErr ? 400 : 500).json({
+      success: false,
+      message: errorMsg,
+    });
+  }
+});
+
+// ============================================================================
+// POST /api/analyzer/phone (Protected, Rate-Limited)
+// ============================================================================
+router.post("/phone", authMiddleware, scanRateLimiter, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication token required",
+      });
+      return;
+    }
+
+    const { phone, countryHint } = req.body;
+
+    if (!phone || typeof phone !== "string" || phone.trim() === "") {
+      res.status(400).json({
+        success: false,
+        message: "Phone number is required and cannot be empty",
+      });
+      return;
+    }
+
+    if (phone.length > 30) {
+      res.status(400).json({
+        success: false,
+        message: "Phone number exceeds maximum permitted length (30 characters)",
+      });
+      return;
+    }
+
+    if (countryHint !== undefined && typeof countryHint !== "string") {
+      res.status(400).json({
+        success: false,
+        message: "countryHint must be a string",
+      });
+      return;
+    }
+
+    const result = await analyzePhone({
+      phone: phone.trim(),
+      countryHint: countryHint ? countryHint.trim() : undefined,
+    });
+
+    res.status(200).json({
+      success: true,
+      phoneAnalysis: result,
+      data: result,
+    });
+  } catch (error: any) {
+    const errorMsg = error instanceof Error ? error.message : "Internal error during phone analysis";
+    const isValidationErr =
+      errorMsg.includes("Invalid") ||
+      errorMsg.includes("required") ||
+      errorMsg.includes("exceeds");
+
+    res.status(isValidationErr ? 400 : 500).json({
+      success: false,
+      message: errorMsg,
+    });
+  }
+});
+
+// ============================================================================
 // GET /api/analyzer/stats (Protected, Authenticated User Metrics)
 // ============================================================================
 router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.user || !req.user.id) {
+    if (!req.user || !req.user.id || !Types.ObjectId.isValid(req.user.id)) {
       res.status(401).json({
         success: false,
         message: "Authentication token required",
@@ -165,7 +302,7 @@ router.get("/stats", authMiddleware, async (req: AuthRequest, res: Response): Pr
 // ============================================================================
 router.get("/history", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    if (!req.user || !req.user.id) {
+    if (!req.user || !req.user.id || !Types.ObjectId.isValid(req.user.id)) {
       res.status(401).json({
         success: false,
         message: "Authentication token required",

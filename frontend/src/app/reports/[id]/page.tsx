@@ -4,22 +4,11 @@ import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  FileText,
   Download,
   Edit3,
   Trash2,
   ArrowLeft,
-  Shield,
-  ShieldAlert,
-  Lock,
-  Cpu,
-  Globe,
-  AlertTriangle,
   CheckCircle2,
-  Calendar,
-  User,
-  Clock,
-  ExternalLink,
   Bot,
   AlertCircle
 } from "lucide-react";
@@ -106,7 +95,7 @@ export default function ReportDetailPage() {
         report._id,
         `CyberGuard-Incident-Report-${report.reportId}.pdf`
       );
-    } catch (err: any) {
+    } catch {
       alert("Failed to download PDF report. Please try again.");
     } finally {
       setDownloadingPdf(false);

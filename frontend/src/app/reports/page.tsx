@@ -7,26 +7,20 @@ import {
   Download, 
   Trash2, 
   Eye, 
-  Search, 
   Plus, 
   AlertCircle, 
   Loader2, 
-  Filter, 
-  ExternalLink,
-  Calendar,
-  ShieldAlert,
-  FileCheck
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { RiskMeter } from "@/components/common/risk-meter";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { reportService } from "@/services/report.service";
 import { IncidentReport } from "@/types/api";
-
-type StatusFilter = "ALL" | "FINAL" | "DRAFT" | "ARCHIVED";
+import { ReportFilters, ReportStatusBadge, type StatusFilter } from "@/components/reports";
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<IncidentReport[]>([]);
@@ -89,29 +83,6 @@ export default function ReportsPage() {
     }
   };
 
-  const getStatusBadge = (status: "DRAFT" | "FINAL" | "ARCHIVED") => {
-    switch (status) {
-      case "FINAL":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <FileCheck className="w-3 h-3" /> Final
-          </span>
-        );
-      case "DRAFT":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-            Draft
-          </span>
-        );
-      case "ARCHIVED":
-        return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
-            Archived
-          </span>
-        );
-    }
-  };
-
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
@@ -150,41 +121,15 @@ export default function ReportsPage() {
             )}
 
             {/* Filters and Search Bar */}
+            <ReportFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              statusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
+            />
+
+            {/* Table / Content */}
             <Card className="border-[#E5E7EB] bg-white shadow-sm overflow-hidden mb-6">
-              <CardHeader className="p-4 border-b border-[#E5E7EB]">
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                  {/* Search Input */}
-                  <div className="relative w-full md:w-96">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search by Report ID, Title, or URL..."
-                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-[#E5E7EB] rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#10B981]/20 focus:border-[#10B981] transition"
-                    />
-                  </div>
-
-                  {/* Status Tabs */}
-                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl w-full md:w-auto overflow-x-auto">
-                    {(["ALL", "FINAL", "DRAFT", "ARCHIVED"] as StatusFilter[]).map((tab) => (
-                      <button
-                        key={tab}
-                        onClick={() => setStatusFilter(tab)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                          statusFilter === tab
-                            ? "bg-white text-[#1F2937] shadow-sm"
-                            : "text-slate-500 hover:text-slate-800"
-                        }`}
-                      >
-                        {tab === "ALL" ? "All Reports" : tab.charAt(0) + tab.slice(1).toLowerCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </CardHeader>
-
-              {/* Table / Content */}
               <CardContent className="p-0">
                 {loading ? (
                   <div className="py-20 flex flex-col items-center justify-center text-slate-400">
@@ -254,7 +199,7 @@ export default function ReportsPage() {
 
                             {/* Status */}
                             <td className="px-5 py-4">
-                              {getStatusBadge(report.status)}
+                              <ReportStatusBadge status={report.status} />
                             </td>
 
                             {/* Date */}

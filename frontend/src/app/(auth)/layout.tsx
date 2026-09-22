@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Shield } from "lucide-react";
-import Link from "next/link";
 import CyberIllustration from "@/components/auth/CyberIllustration";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -28,21 +27,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       </section>
 
       {/* ─── Right Panel: Auth Form ─── */}
-      <section className="flex h-full items-center justify-center overflow-y-auto bg-white px-4 py-6 sm:px-8">
-        <div className="w-full max-w-md rounded-2xl border border-[#e2e8f0] bg-white p-5 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)] sm:p-7">
-          {/* Brand Identity */}
-          <div className="mb-5 flex flex-col items-center text-center">
-            <Link href="/" className="inline-flex flex-col items-center gap-1.5">
-              <div className="mb-1.5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#2563eb] shadow-sm">
-                <Shield className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xs font-semibold uppercase tracking-wide text-[#2563eb]">
-                AI Cyber Crime Assistant
-              </span>
-            </Link>
-          </div>
-
-          {/* Auth form content (login / register / etc.) */}
+      <section className="flex h-full items-center justify-center overflow-y-auto bg-white px-4 py-4 sm:px-8">
+        <div className="w-full max-w-md">
           {children}
         </div>
       </section>

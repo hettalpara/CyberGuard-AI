@@ -109,6 +109,7 @@ export interface IIncidentReportSnapshot {
     error?: string;
   };
   riskFactors?: any[];
+  findings?: any[];
   summary?: string;
   scannedAt: Date;
 }
@@ -222,6 +223,7 @@ const incidentReportSchema = new Schema<IIncidentReport>(
       ssl: { type: Schema.Types.Mixed },
       aiAnalysis: { type: Schema.Types.Mixed },
       riskFactors: { type: [Schema.Types.Mixed], default: [] },
+      findings: { type: [Schema.Types.Mixed], default: [] },
       summary: { type: String, default: "" },
       scannedAt: { type: Date, required: true },
     },
@@ -234,8 +236,9 @@ const incidentReportSchema = new Schema<IIncidentReport>(
   }
 );
 
-// Compound indexes for user query efficiency
+// Compound indexes for user query efficiency and duplicate prevention
 incidentReportSchema.index({ userId: 1, createdAt: -1 });
 incidentReportSchema.index({ userId: 1, status: 1 });
+incidentReportSchema.index({ scanId: 1, userId: 1 });
 
 export const IncidentReport = model<IIncidentReport>("IncidentReport", incidentReportSchema);

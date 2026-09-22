@@ -8,6 +8,7 @@ import { Types } from "mongoose";
 import {
   IncidentReport,
   IIncidentReport,
+  IIncidentReportSnapshot,
   IncidentType,
   INCIDENT_TYPES,
   ReportStatus,
@@ -115,7 +116,31 @@ export async function createIncidentReport(
     throw new Error("Scan not found");
   }
 
-  // 2. Generate unique reportId
+  // 2. Prevent duplicates: If a report already exists for this scanId and user, update it
+  const existingForScan = await IncidentReport.findOne({
+    scanId: scan._id,
+    userId: new Types.ObjectId(userId),
+  });
+
+  if (existingForScan) {
+    existingForScan.incidentType = dto.incidentType;
+    existingForScan.title = dto.title.trim();
+    existingForScan.description = dto.description.trim();
+    if (dto.incidentDate) existingForScan.incidentDate = new Date(dto.incidentDate);
+    if (dto.source !== undefined) existingForScan.source = dto.source.trim();
+    if (dto.affectedAccount !== undefined) existingForScan.affectedAccount = dto.affectedAccount.trim();
+    if (dto.userNotes !== undefined) existingForScan.userNotes = dto.userNotes.trim();
+    if (dto.status && REPORT_STATUSES.includes(dto.status)) {
+      existingForScan.status = dto.status;
+      if (dto.status === "FINAL" && !existingForScan.generatedAt) {
+        existingForScan.generatedAt = new Date();
+      }
+    }
+    await existingForScan.save();
+    return existingForScan;
+  }
+
+  // 3. Generate unique reportId
   let reportId = generateUniqueReportId();
   let existing = await IncidentReport.findOne({ reportId });
   while (existing) {
@@ -123,7 +148,7 @@ export async function createIncidentReport(
     existing = await IncidentReport.findOne({ reportId });
   }
 
-  // 3. Create immutable security snapshot from the verified scan
+  // 4. Create immutable security snapshot from the verified scan
   const snapshot = {
     url: scan.url,
     normalizedUrl: scan.normalizedUrl,
@@ -141,6 +166,7 @@ export async function createIncidentReport(
     ssl: scan.ssl,
     aiAnalysis: scan.aiAnalysis,
     riskFactors: scan.riskFactors || scan.risk?.factors || [],
+    findings: (scan as any).findings || scan.risk?.findings || [],
     summary: scan.summary || scan.aiExplanation || "",
     scannedAt: scan.scannedAt || scan.createdAt || new Date(),
   };
@@ -162,6 +188,121 @@ export async function createIncidentReport(
     snapshot,
     generatedAt: status === "FINAL" ? new Date() : undefined,
   });
+
+  return report;
+}
+
+/**
+ * Automatically creates an official Incident Report from a completed Scan.
+ * Ensures data integrity, accurate security snapshot, and strict user ownership.
+ * Prevents duplicate reports for the same scan.
+ */
+export async function createAutomaticIncidentReportForScan(
+  scan: any,
+  userId: string
+): Promise<IIncidentReport> {
+  if (!userId || !Types.ObjectId.isValid(userId)) {
+    throw new Error("Invalid or missing user ID");
+  }
+
+  if (!scan || !scan._id) {
+    throw new Error("Invalid or missing scan object");
+  }
+
+  const userObjectId = new Types.ObjectId(userId);
+
+  // 1. Prevent duplicate reports for the same scan
+  const existingReport = await IncidentReport.findOne({
+    scanId: scan._id,
+    userId: userObjectId,
+  });
+
+  if (existingReport) {
+    return existingReport;
+  }
+
+  // 2. Derive incident type based on actual security findings
+  let incidentType: IncidentType = "Suspicious URL";
+  const hasMalware =
+    scan.safeBrowsing?.threatTypes?.includes("MALWARE") ||
+    scan.urlhaus?.match ||
+    Boolean(scan.urlhaus?.threatType?.toLowerCase().includes("malware")) ||
+    (Array.isArray(scan.findings) && scan.findings.some((f: any) => f.finding?.includes("MALWARE")));
+
+  const hasPhishing =
+    scan.safeBrowsing?.threatTypes?.includes("SOCIAL_ENGINEERING") ||
+    (Array.isArray(scan.findings) && scan.findings.some((f: any) => f.finding?.includes("PHISHING")));
+
+  if (hasMalware) {
+    incidentType = "Malware";
+  } else if (hasPhishing) {
+    incidentType = "Phishing";
+  } else if (scan.riskLevel === "CRITICAL" || scan.riskLevel === "HIGH") {
+    incidentType = "Suspicious URL";
+  }
+
+  // 3. Format title and description
+  const targetHost = scan.domain || scan.normalizedUrl || "Target";
+  const title = `Automated Security Scan: ${targetHost}`.substring(0, 200);
+
+  const scoreText = scan.riskScore !== null && scan.riskScore !== undefined ? `${scan.riskScore}/100` : "Inconclusive";
+  const summaryText = scan.summary || scan.aiExplanation || "Automated multi-engine threat intelligence triage completed.";
+  const description = `${summaryText} Official Risk Classification: ${scan.riskLevel || "SAFE"} (${scoreText}).`.substring(0, 5000);
+
+  // 4. Generate unique reportId
+  let reportId = generateUniqueReportId();
+  let collision = await IncidentReport.findOne({ reportId });
+  while (collision) {
+    reportId = generateUniqueReportId();
+    collision = await IncidentReport.findOne({ reportId });
+  }
+
+  // 5. Build immutable security snapshot
+  const snapshot: IIncidentReportSnapshot = {
+    url: scan.url,
+    normalizedUrl: scan.normalizedUrl,
+    domain: scan.domain,
+    riskScore: scan.riskScore !== undefined ? scan.riskScore : scan.risk?.score ?? null,
+    riskLevel: scan.riskLevel || scan.risk?.level || "SAFE",
+    confidence: scan.confidence ?? 85,
+    riskCalculationVersion: scan.riskCalculationVersion || "2.0",
+    analysisStatus: scan.analysisStatus || "COMPLETE",
+    safeBrowsing: scan.safeBrowsing,
+    virusTotal: scan.virusTotal,
+    urlhaus: scan.urlhaus,
+    urlIntelligence: scan.urlIntelligence,
+    sslAnalysis: scan.sslAnalysis,
+    ssl: scan.ssl,
+    aiAnalysis: scan.aiAnalysis,
+    riskFactors: scan.riskFactors || scan.risk?.factors || [],
+    findings: scan.findings || scan.risk?.findings || [],
+    summary: scan.summary || scan.aiExplanation || "",
+    scannedAt: scan.scannedAt || scan.createdAt || new Date(),
+  };
+
+  // 6. Create report document with FINAL status
+  const report = await IncidentReport.create({
+    reportId,
+    userId: userObjectId,
+    scanId: scan._id,
+    incidentType,
+    title,
+    description,
+    incidentDate: scan.scannedAt || new Date(),
+    source: scan.url,
+    affectedAccount: "",
+    userNotes: "Automatically generated by CyberGuard AI following URL security analysis.",
+    status: "FINAL",
+    snapshot,
+    generatedAt: new Date(),
+  });
+
+  // 7. Update Scan with generated reportId
+  try {
+    await Scan.updateOne({ _id: scan._id }, { $set: { reportId: report.reportId } });
+  } catch {
+    // Non-fatal
+  }
 
   return report;
 }

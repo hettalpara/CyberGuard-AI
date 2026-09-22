@@ -6,7 +6,6 @@
 
 import { apiClient } from "@/lib/api-client";
 import type {
-  ApiResponse,
   IncidentReport,
   CreateReportInput,
   UpdateReportInput,

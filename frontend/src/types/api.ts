@@ -185,6 +185,8 @@ export interface IncidentReportSnapshot {
   scannedAt: string;
 }
 
+export type ReportStatus = "DRAFT" | "FINAL" | "ARCHIVED";
+
 export interface IncidentReport {
   _id: string;
   reportId: string;
@@ -197,7 +199,7 @@ export interface IncidentReport {
   source?: string;
   affectedAccount?: string;
   userNotes?: string;
-  status: "DRAFT" | "FINAL" | "ARCHIVED";
+  status: ReportStatus;
   snapshot: IncidentReportSnapshot;
   generatedAt?: string;
   createdAt: string;
