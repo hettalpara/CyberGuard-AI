@@ -31,6 +31,10 @@ export interface IIncidentReportSnapshot {
   confidence: number;
   riskCalculationVersion?: string;
   analysisStatus?: string;
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  overrideType?: string | null;
+  calculationMethod?: string;
   safeBrowsing?: {
     checked: boolean;
     available: boolean;
@@ -215,6 +219,10 @@ const incidentReportSchema = new Schema<IIncidentReport>(
       confidence: { type: Number, required: true },
       riskCalculationVersion: { type: String },
       analysisStatus: { type: String },
+      overrideTriggered: { type: Boolean, default: false },
+      overrideReason: { type: String, default: null },
+      overrideType: { type: String, default: null },
+      calculationMethod: { type: String, default: "WEIGHTED_CALCULATION" },
       safeBrowsing: { type: Schema.Types.Mixed },
       virusTotal: { type: Schema.Types.Mixed },
       urlhaus: { type: Schema.Types.Mixed },

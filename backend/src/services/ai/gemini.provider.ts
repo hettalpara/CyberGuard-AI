@@ -190,6 +190,10 @@ You must respond ONLY with a valid JSON object matching this exact structure:
     evidenceSections.push(`Risk Score:\n${input.riskScore !== null ? input.riskScore : "INCONCLUSIVE (null)"}`);
     evidenceSections.push(`Risk Level:\n${input.riskLevel}`);
     evidenceSections.push(`Confidence:\n${input.confidence}%`);
+    evidenceSections.push(`Risk Calculation Method:\n${input.calculationMethod || "WEIGHTED_CALCULATION"}`);
+    if (input.overrideTriggered) {
+      evidenceSections.push(`Short-Circuit Override Triggered:\nYes - ${input.overrideReason || "Critical threat detected by primary security provider"}`);
+    }
 
     // Google Safe Browsing evidence
     const sbEvidence = input.securityEvidence?.safeBrowsing;

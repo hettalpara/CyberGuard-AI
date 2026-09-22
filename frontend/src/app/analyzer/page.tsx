@@ -87,6 +87,10 @@ interface DetailedAnalysis {
   threatLevel: string;
   confidence: number;
   analysisStatus?: string;
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  overrideType?: string | null;
+  calculationMethod?: string;
   riskFactors: RiskFactorData[];
   findings?: SecurityFindingData[];
   riskReasons: string[];
@@ -105,6 +109,7 @@ function getSeverityBadge(severity: string): string {
   switch (severity) {
     case "CRITICAL": return "bg-red-100 text-red-700 border-red-300";
     case "HIGH": return "bg-orange-100 text-orange-700 border-orange-300";
+    case "MODERATE":
     case "MEDIUM": return "bg-amber-100 text-amber-700 border-amber-300";
     case "LOW": return "bg-yellow-100 text-yellow-700 border-yellow-300";
     case "INFO": return "bg-blue-50 text-blue-700 border-blue-200";
@@ -132,7 +137,8 @@ function getRiskLevelColor(level: string): string {
   switch (level) {
     case "CRITICAL": return "text-red-600";
     case "HIGH": return "text-orange-600";
-    case "MODERATE": return "text-amber-600";
+    case "MODERATE":
+    case "MEDIUM": return "text-amber-600";
     case "LOW": return "text-yellow-600";
     case "SAFE": return "text-emerald-600";
     case "INCONCLUSIVE": return "text-slate-500";
@@ -144,7 +150,8 @@ function getRiskLevelBg(level: string): string {
   switch (level) {
     case "CRITICAL": return "bg-red-100 text-red-700 border-red-200";
     case "HIGH": return "bg-orange-100 text-orange-700 border-orange-200";
-    case "MODERATE": return "bg-amber-100 text-amber-700 border-amber-200";
+    case "MODERATE":
+    case "MEDIUM": return "bg-amber-100 text-amber-700 border-amber-200";
     case "LOW": return "bg-yellow-100 text-yellow-700 border-yellow-200";
     case "SAFE": return "bg-emerald-100 text-emerald-700 border-emerald-200";
     case "INCONCLUSIVE": return "bg-slate-100 text-slate-700 border-slate-300";
@@ -354,6 +361,10 @@ export default function SmartUrlAnalyzerPage() {
           threatLevel,
           confidence: scan.confidence ?? scan.risk?.confidence ?? 0,
           analysisStatus: scan.analysisStatus || (scan.riskScore === null ? "INSUFFICIENT_DATA" : "COMPLETE"),
+          overrideTriggered: scan.overrideTriggered !== undefined ? scan.overrideTriggered : scan.risk?.overrideTriggered ?? false,
+          overrideReason: scan.overrideReason !== undefined ? scan.overrideReason : scan.risk?.overrideReason ?? null,
+          overrideType: scan.overrideType !== undefined ? scan.overrideType : scan.risk?.overrideType ?? null,
+          calculationMethod: scan.calculationMethod || scan.risk?.calculationMethod || "WEIGHTED_CALCULATION",
           riskFactors,
           findings: scan.findings || scan.risk?.findings || [],
           riskReasons: scan.risk?.reasons || [],
@@ -588,8 +599,33 @@ export default function SmartUrlAnalyzerPage() {
                 </div>
               )}
 
+              {/* Short-Circuit Override Alert Banner */}
+              {analysis.overrideTriggered && (
+                <div className="p-5 bg-red-50/90 border-2 border-red-300 rounded-2xl shadow-sm flex flex-col sm:flex-row items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black uppercase tracking-wider text-red-700 bg-red-100 px-3 py-0.5 rounded-full border border-red-300">
+                        Critical Override Triggered
+                      </span>
+                      <span className="text-xs text-slate-600 font-semibold">
+                        Calculation Method: <strong className="text-red-700 font-bold">Short-Circuit Override</strong>
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold text-red-950 pt-1">
+                      {analysis.overrideReason || "Immediate critical threat detected by security provider."}
+                    </p>
+                    <p className="text-xs text-red-800 leading-relaxed">
+                      To prevent high-severity detections from being diluted by clean results from other providers, the risk engine immediately bypassed the weighted formula and assigned an authoritative score of <strong className="font-bold">{analysis.riskScore} / 100 ({analysis.threatLevel})</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* ============================================================ */}
-              {/* Risk Score Overview Card (NEW) */}
+              {/* Risk Score Overview Card */}
               {/* ============================================================ */}
               <Card className="border-[#E5E7EB] bg-white shadow-sm overflow-hidden">
                 <CardHeader className="pb-3 border-b border-[#E5E7EB]">
@@ -599,21 +635,21 @@ export default function SmartUrlAnalyzerPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Risk Score */}
                     <div className="text-center p-4 bg-slate-50 rounded-xl border border-[#E5E7EB]">
-                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Risk Score</p>
+                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Final Risk Score</p>
                       <p className={`text-4xl font-black tracking-tight ${getRiskLevelColor(analysis.threatLevel)}`}>
-                        {analysis.riskScore !== null ? analysis.riskScore : "—"}
+                        {analysis.riskScore !== null ? `${analysis.riskScore} / 100` : "—"}
                       </p>
                       <p className="text-[11px] text-slate-400 mt-1">
-                        {analysis.riskScore !== null ? "out of 100" : "Insufficient Data"}
+                        {analysis.riskScore !== null ? (analysis.overrideTriggered ? "Short-Circuit Score" : "Weighted Score") : "Insufficient Data"}
                       </p>
                     </div>
 
                     {/* Risk Level */}
                     <div className="text-center p-4 bg-slate-50 rounded-xl border border-[#E5E7EB]">
-                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Risk Level</p>
+                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Final Risk Level</p>
                       <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold border ${getRiskLevelBg(analysis.threatLevel)}`}>
                         {analysis.threatLevel}
                       </span>
@@ -632,6 +668,17 @@ export default function SmartUrlAnalyzerPage() {
                           style={{ width: `${Math.min(100, Math.max(0, analysis.confidence))}%` }}
                         />
                       </div>
+                    </div>
+
+                    {/* Calculation Method */}
+                    <div className="text-center p-4 bg-slate-50 rounded-xl border border-[#E5E7EB]">
+                      <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">Calculation Method</p>
+                      <span className={`inline-block px-3 py-1.5 rounded-lg text-xs font-bold border ${analysis.overrideTriggered ? "bg-red-100 text-red-700 border-red-300" : "bg-slate-100 text-slate-700 border-slate-300"}`}>
+                        {analysis.overrideTriggered ? "Short-Circuit Override" : "Weighted Calculation"}
+                      </span>
+                      <p className="text-[10px] text-slate-400 mt-2">
+                        {analysis.overrideTriggered ? "Bypassed weighted average" : "Multi-provider weighted sum"}
+                      </p>
                     </div>
                   </div>
                 </CardContent>

@@ -10,6 +10,10 @@ export interface IScan extends Document {
   confidence: number;
   riskCalculationVersion?: string;
   analysisStatus?: string;
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  overrideType?: string | null;
+  calculationMethod?: string;
   risk: {
     score: number | null;
     level: string;
@@ -29,12 +33,16 @@ export interface IScan extends Document {
     findings?: Array<{
       source: string;
       finding: string;
-      severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+      severity: "CRITICAL" | "HIGH" | "MODERATE" | "MEDIUM" | "LOW" | "INFO";
       explanation: string;
       evidence?: string;
       isConfirmedThreat?: boolean;
     }>;
     analysisStatus?: string;
+    overrideTriggered?: boolean;
+    overrideReason?: string | null;
+    overrideType?: string | null;
+    calculationMethod?: string;
   };
   ssl: {
     enabled: boolean;
@@ -184,6 +192,22 @@ const scanSchema = new Schema<IScan>(
       type: String,
       default: "COMPLETE",
     },
+    overrideTriggered: {
+      type: Boolean,
+      default: false,
+    },
+    overrideReason: {
+      type: String,
+      default: null,
+    },
+    overrideType: {
+      type: String,
+      default: null,
+    },
+    calculationMethod: {
+      type: String,
+      default: "WEIGHTED_CALCULATION",
+    },
     risk: {
       score: { type: Number, default: null },
       level: { type: String, default: "SAFE" },
@@ -192,6 +216,10 @@ const scanSchema = new Schema<IScan>(
       factors: { type: [Schema.Types.Mixed], default: [] },
       findings: { type: [Schema.Types.Mixed], default: [] },
       analysisStatus: { type: String, default: "COMPLETE" },
+      overrideTriggered: { type: Boolean, default: false },
+      overrideReason: { type: String, default: null },
+      overrideType: { type: String, default: null },
+      calculationMethod: { type: String, default: "WEIGHTED_CALCULATION" },
     },
     urlIntelligence: {
       status: { type: String, default: "UNAVAILABLE" },

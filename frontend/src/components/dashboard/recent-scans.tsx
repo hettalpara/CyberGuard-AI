@@ -77,7 +77,7 @@ export function RecentScans({ scans, loading, formatTimeAgo }: RecentScansProps)
                     </div>
                   </div>
                   <div className="shrink-0 flex items-center gap-3">
-                    <RiskMeter score={score} threatLevel={level === "MODERATE" ? "MEDIUM" : level} size="sm" />
+                    <RiskMeter score={score} threatLevel={level === "MEDIUM" ? "MODERATE" : level} size="sm" />
                   </div>
                 </div>
               );

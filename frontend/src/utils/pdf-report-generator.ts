@@ -10,6 +10,9 @@ export interface PdfScanData {
   riskScore: number | null;
   threatLevel: string;
   confidence?: number;
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  calculationMethod?: string;
   ssl?: { valid: boolean; issuer: string; validDaysRemaining?: number };
   sslAnalysis?: {
     protocol?: string;
@@ -36,6 +39,8 @@ export function generatePdfReport(data: PdfScanData) {
     alert("Please allow popups to download the security report PDF.");
     return;
   }
+
+  const displayThreatLevel = (data.threatLevel || "SAFE").replace("MEDIUM", "MODERATE");
 
   const riskBadgeColor =
     data.riskScore === null
@@ -72,6 +77,8 @@ export function generatePdfReport(data: PdfScanData) {
         .header { border-bottom: 2px solid #E5E7EB; padding-bottom: 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
         .logo { font-size: 20px; font-weight: bold; color: #10B981; }
         .badge { background: ${riskBadgeColor}; color: white; padding: 6px 14px; border-radius: 6px; font-size: 14px; font-weight: bold; display: inline-block; }
+        .override-box { background: #FEF2F2; border: 2px solid #FECACA; border-radius: 8px; padding: 14px; margin-bottom: 20px; color: #991B1B; }
+        .override-title { font-weight: bold; font-size: 13px; text-transform: uppercase; margin-bottom: 4px; }
         .section { margin-bottom: 25px; background: #F8FAFC; border: 1px solid #E5E7EB; border-radius: 8px; padding: 18px; }
         .section-title { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #64748B; margin-bottom: 12px; letter-spacing: 0.5px; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 13px; }
@@ -90,9 +97,19 @@ export function generatePdfReport(data: PdfScanData) {
           <div style="font-size: 12px; color: #64748B; margin-top: 4px;">Smart URL Threat Intelligence & Security Report</div>
         </div>
         <div>
-          <span class="badge">RISK SCORE: ${data.riskScore !== null ? `${data.riskScore}/100` : "INCONCLUSIVE"} (${data.threatLevel})</span>
+          <span class="badge">RISK SCORE: ${data.riskScore !== null ? `${data.riskScore}/100` : "INCONCLUSIVE"} (${displayThreatLevel})</span>
         </div>
       </div>
+
+      ${
+        data.overrideTriggered
+          ? `<div class="override-box">
+              <div class="override-title">⚠️ Short-Circuit Override Triggered</div>
+              <div><strong>Override Reason:</strong> ${data.overrideReason || "Critical threat detected by primary security provider."}</div>
+              <div style="font-size: 11px; margin-top: 4px; color: #B91C1C;">Risk calculation method: Short-Circuit Override (bypassed normal weighted averaging to prevent threat dilution).</div>
+             </div>`
+          : ""
+      }
 
       <div class="section">
         <div class="section-title">Scan Overview</div>
@@ -102,7 +119,8 @@ export function generatePdfReport(data: PdfScanData) {
           <div><span class="label">Submitted URL:</span> <span class="value">${data.url}</span></div>
           <div><span class="label">Normalized Destination:</span> <span class="value">${data.normalizedUrl}</span></div>
           <div><span class="label">Confidence Rating:</span> <span class="value">${data.confidence ?? 85}%</span></div>
-          <div><span class="label">Risk Classification:</span> <span class="value">${data.threatLevel}</span></div>
+          <div><span class="label">Risk Classification:</span> <span class="value">${displayThreatLevel}</span></div>
+          <div><span class="label">Calculation Method:</span> <span class="value">${data.overrideTriggered ? "Short-Circuit Override" : "Normal Weighted Calculation"}</span></div>
         </div>
       </div>
 

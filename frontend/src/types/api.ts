@@ -52,7 +52,11 @@ export interface UrlScanResult {
   id: string;
   url: string;
   riskScore: number;
-  threatLevel: "SAFE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  threatLevel: "SAFE" | "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  overrideType?: "GOOGLE_MALICIOUS" | "URLHAUS_ONLINE" | "VIRUSTOTAL_DETECTIONS" | null;
+  calculationMethod?: "SHORT_CIRCUIT_OVERRIDE" | "WEIGHTED_CALCULATION";
   safeBrowsingMatch?: boolean;
   urlhausMatch?: boolean;
   virusTotalDetectionRatio?: string;
@@ -114,6 +118,10 @@ export interface IncidentReportSnapshot {
   confidence: number;
   riskCalculationVersion?: string;
   analysisStatus?: string;
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  overrideType?: "GOOGLE_MALICIOUS" | "URLHAUS_ONLINE" | "VIRUSTOTAL_DETECTIONS" | null;
+  calculationMethod?: "SHORT_CIRCUIT_OVERRIDE" | "WEIGHTED_CALCULATION";
   safeBrowsing?: {
     checked: boolean;
     available: boolean;

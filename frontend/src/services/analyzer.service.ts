@@ -33,7 +33,7 @@ export interface AIAnalysisData {
 export interface SecurityFindingData {
   source: string;
   finding: string;
-  severity: "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+  severity: "CRITICAL" | "HIGH" | "MODERATE" | "MEDIUM" | "LOW" | "INFO";
   explanation: string;
   evidence?: string | Record<string, unknown>;
   isConfirmedThreat?: boolean;
@@ -49,6 +49,10 @@ export interface ScanResultData {
   confidence: number;
   riskCalculationVersion?: string;
   analysisStatus?: string;
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  overrideType?: "GOOGLE_MALICIOUS" | "URLHAUS_ONLINE" | "VIRUSTOTAL_DETECTIONS" | null;
+  calculationMethod?: "SHORT_CIRCUIT_OVERRIDE" | "WEIGHTED_CALCULATION";
   findings?: SecurityFindingData[];
   risk?: {
     score: number | null;
@@ -57,6 +61,10 @@ export interface ScanResultData {
     confidence: number;
     factors: RiskFactorData[];
     findings?: SecurityFindingData[];
+    overrideTriggered?: boolean;
+    overrideReason?: string | null;
+    overrideType?: string | null;
+    calculationMethod?: string;
   };
   ssl: {
     enabled: boolean;

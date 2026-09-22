@@ -24,7 +24,7 @@ export function getRiskLevel(score: number): RiskLevel {
 // Evidence-Based Finding Severity System
 // ============================================================================
 
-export type FindingSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO";
+export type FindingSeverity = "CRITICAL" | "HIGH" | "MODERATE" | "MEDIUM" | "LOW" | "INFO";
 
 export interface SecurityFinding {
   source: "Google Safe Browsing" | "VirusTotal" | "URLhaus" | "URL Intelligence" | "SSL/TLS";
@@ -39,7 +39,7 @@ export interface SecurityFinding {
 // Legacy Risk Factor Types for Backward Compatibility
 // ============================================================================
 
-export type FactorImpact = "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type FactorImpact = "NONE" | "LOW" | "MODERATE" | "MEDIUM" | "HIGH" | "CRITICAL";
 
 export type FactorStatus =
   | "CHECKED"
@@ -72,6 +72,16 @@ export interface RiskFactor {
   details?: Record<string, unknown>;
 }
 
+export type OverrideType =
+  | "GOOGLE_MALICIOUS"
+  | "URLHAUS_ONLINE"
+  | "VIRUSTOTAL_DETECTIONS"
+  | null;
+
+export type CalculationMethod =
+  | "SHORT_CIRCUIT_OVERRIDE"
+  | "WEIGHTED_CALCULATION";
+
 export interface RiskAssessmentResult {
   riskScore: number | null;
   riskLevel: RiskLevel | "INCONCLUSIVE";
@@ -79,6 +89,10 @@ export interface RiskAssessmentResult {
   factors: RiskFactor[];
   summary: string;
   analysisStatus?: "COMPLETE" | "LIMITED" | "INSUFFICIENT_DATA";
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  overrideType?: OverrideType;
+  calculationMethod?: CalculationMethod;
 }
 
 export interface RiskEvaluation {
@@ -94,6 +108,10 @@ export interface RiskEvaluation {
   assessment: RiskAssessmentResult;
   analysisStatus: "COMPLETE" | "LIMITED" | "INSUFFICIENT_DATA";
   summary: string;
+  overrideTriggered: boolean;
+  overrideReason: string | null;
+  overrideType: OverrideType;
+  calculationMethod: CalculationMethod;
 }
 
 // Backward compatibility export for factor weights
@@ -113,7 +131,7 @@ export const FACTOR_WEIGHTS: FactorWeight[] = [
 function getFactorImpact(score: number): FactorImpact {
   if (score >= 80) return "CRITICAL";
   if (score >= 60) return "HIGH";
-  if (score >= 40) return "MEDIUM";
+  if (score >= 40) return "MODERATE";
   if (score >= 10) return "LOW";
   return "NONE";
 }
@@ -306,7 +324,7 @@ export function extractVirusTotalFindings(virusTotal: VirusTotalResult): Securit
     findings.push({
       source: "VirusTotal",
       finding: "VT_CONCURRENT_DETECTIONS",
-      severity: "MEDIUM",
+      severity: "MODERATE",
       explanation: `${mal} security vendors independently flagged this URL as malicious.`,
       evidence: { maliciousCount: mal, totalEngines: total },
     });
@@ -322,7 +340,7 @@ export function extractVirusTotalFindings(virusTotal: VirusTotalResult): Securit
     findings.push({
       source: "VirusTotal",
       finding: "VT_SUSPICIOUS_CONSENSUS",
-      severity: "MEDIUM",
+      severity: "MODERATE",
       explanation: `${susp} security vendors flagged this URL as suspicious on VirusTotal.`,
       evidence: { suspiciousCount: susp, totalEngines: total },
     });
@@ -390,7 +408,7 @@ export function calculateVirusTotalScore(virusTotal: VirusTotalResult): RiskFact
   } else if (primary.severity === "HIGH") {
     score = 80;
     status = "MALICIOUS_DETECTIONS";
-  } else if (primary.severity === "MEDIUM") {
+  } else if (primary.severity === "MODERATE" || primary.severity === "MEDIUM") {
     score = mal >= 2 ? 60 : 45;
     status = mal >= 2 ? "MALICIOUS_DETECTIONS" : "SUSPICIOUS_FEATURES";
   } else if (primary.severity === "LOW") {
@@ -557,7 +575,7 @@ export function extractUrlIntelligenceFindings(
     findings.push({
       source: "URL Intelligence",
       finding: "URL_RAW_IP_DESTINATION",
-      severity: hasSensitivePath ? "HIGH" : "MEDIUM",
+      severity: hasSensitivePath ? "HIGH" : "MODERATE",
       explanation: hasSensitivePath
         ? "Destination uses a numeric IP address hosting sensitive authentication or executable paths."
         : "Destination uses a numeric IP address instead of a registered domain name.",
@@ -569,7 +587,7 @@ export function extractUrlIntelligenceFindings(
     findings.push({
       source: "URL Intelligence",
       finding: "URL_PUNYCODE_HOMOGRAPH",
-      severity: "MEDIUM",
+      severity: "MODERATE",
       explanation: "Hostname contains Punycode / Internationalized Domain Name characters frequently used in spoofing.",
     });
   }
@@ -736,14 +754,14 @@ export function extractSslFindings(
       findings.push({
         source: "SSL/TLS",
         finding: "SSL_EXPIRED_CERTIFICATE",
-        severity: "MEDIUM",
+        severity: "MODERATE",
         explanation: "The SSL/TLS certificate has expired, compromising traffic encryption assurance.",
       });
     } else if (certStatus.includes("self_signed") || certStatus.includes("self-signed")) {
       findings.push({
         source: "SSL/TLS",
         finding: "SSL_SELF_SIGNED_CERTIFICATE",
-        severity: "MEDIUM",
+        severity: "MODERATE",
         explanation: "The certificate is self-signed and not issued by a publicly trusted Certificate Authority.",
       });
     } else if (s.level === "SAFE" || s.score === 0) {
@@ -757,7 +775,7 @@ export function extractSslFindings(
       findings.push({
         source: "SSL/TLS",
         finding: "SSL_ANOMALY",
-        severity: "MEDIUM",
+        severity: "MODERATE",
         explanation: s.reason || "SSL/TLS configuration exhibits validation anomalies.",
       });
     }
@@ -787,21 +805,21 @@ export function extractSslFindings(
     findings.push({
       source: "SSL/TLS",
       finding: "SSL_EXPIRED_CERTIFICATE",
-      severity: "MEDIUM",
+      severity: "MODERATE",
       explanation: "The SSL/TLS certificate has expired.",
     });
   } else if (l.status === "self_signed") {
     findings.push({
       source: "SSL/TLS",
       finding: "SSL_SELF_SIGNED_CERTIFICATE",
-      severity: "MEDIUM",
+      severity: "MODERATE",
       explanation: "The certificate is self-signed and untrusted.",
     });
   } else {
     findings.push({
       source: "SSL/TLS",
       finding: "SSL_INVALID_CERTIFICATE",
-      severity: "MEDIUM",
+      severity: "MODERATE",
       explanation: "The certificate could not be verified by standard trust stores.",
     });
   }
@@ -846,7 +864,7 @@ export function calculateSSLScore(sslData?: SslAnalysisResult | SslAnalysisOutpu
   if (primary.severity === "HIGH") {
     score = 75;
     status = "HOSTNAME_MISMATCH";
-  } else if (primary.severity === "MEDIUM") {
+  } else if (primary.severity === "MODERATE" || primary.severity === "MEDIUM") {
     score = 60;
     status = primary.finding.includes("EXPIRED") ? "EXPIRED_CERTIFICATE" : "INVALID_CERTIFICATE";
   } else if (primary.severity === "LOW") {
@@ -918,6 +936,185 @@ export interface CalculateRiskScoreParams {
   urlIntelligence?: UrlIntelligenceResult;
 }
 
+// ============================================================================
+// Stage 1: Short-Circuit Override Engine
+// ============================================================================
+
+export interface ShortCircuitOverrideResult {
+  triggered: boolean;
+  score: number;
+  level: RiskLevel;
+  overrideType: OverrideType;
+  reasons: string[];
+  primaryReason: string | null;
+}
+
+export function checkShortCircuitOverrides(params: {
+  safeBrowsing?: SafeBrowsingResult;
+  urlhaus?: UrlhausResult;
+  virusTotal?: VirusTotalResult;
+}): ShortCircuitOverrideResult {
+  const { safeBrowsing, urlhaus, virusTotal } = params;
+
+  // RULE 1: Google Safe Browsing == malicious/threat detected
+  const isGoogleMalicious = Boolean(
+    safeBrowsing &&
+    safeBrowsing.available !== false &&
+    safeBrowsing.status !== "CHECKED_NO_THREAT" &&
+    safeBrowsing.status !== "UNAVAILABLE" &&
+    safeBrowsing.status !== "ERROR" &&
+    (safeBrowsing.threatDetected === true ||
+      safeBrowsing.status === "THREAT_DETECTED" ||
+      (Array.isArray(safeBrowsing.threatTypes) && safeBrowsing.threatTypes.length > 0) ||
+      (safeBrowsing as any).malicious === true)
+  );
+
+  // RULE 2: URLhaus status == "online" / active malicious URL
+  // Only trigger when normalized URLhaus status is actually "online" / active malicious URL
+  // Do NOT trigger for: CHECKED_NO_MATCH, UNAVAILABLE, ERROR
+  const isUrlhausOnline = Boolean(
+    urlhaus &&
+    urlhaus.available !== false &&
+    urlhaus.status !== "CHECKED_NO_MATCH" &&
+    urlhaus.status !== "UNAVAILABLE" &&
+    urlhaus.status !== "ERROR" &&
+    (
+      String(urlhaus.status).toLowerCase() === "online" ||
+      urlhaus.status === "MALWARE_URL_DETECTED" ||
+      String((urlhaus as any).url_status).toLowerCase() === "online" ||
+      urlhaus.match === true
+    )
+  );
+
+  // RULE 3: VirusTotal detections >= 4
+  // Do NOT trigger for: 0, 1, 2, 3 detections; unavailable; not_configured; error
+  const vtDetections = (
+    virusTotal &&
+    virusTotal.available !== false &&
+    virusTotal.status !== "unavailable" &&
+    virusTotal.status !== "not_configured"
+  )
+    ? (typeof virusTotal.maliciousCount === "number"
+        ? virusTotal.maliciousCount
+        : (virusTotal.malicious ? 1 : 0))
+    : 0;
+  const isVirusTotalCritical = vtDetections >= 4;
+
+  const triggeredReasons: string[] = [];
+
+  if (isGoogleMalicious) {
+    triggeredReasons.push("Google Safe Browsing detected a malicious threat.");
+  }
+  if (isUrlhausOnline) {
+    triggeredReasons.push("URLhaus identified the URL as an active malicious URL.");
+  }
+  if (isVirusTotalCritical) {
+    triggeredReasons.push("VirusTotal reported four or more security detections.");
+  }
+
+  if (triggeredReasons.length === 0) {
+    return {
+      triggered: false,
+      score: 0,
+      level: "SAFE",
+      overrideType: null,
+      reasons: [],
+      primaryReason: null,
+    };
+  }
+
+  // Priority order:
+  // 1. Google Safe Browsing malicious
+  // 2. URLhaus online
+  // 3. VirusTotal detections >= 4
+  let overrideType: OverrideType = null;
+  let score = 99;
+
+  if (isGoogleMalicious) {
+    overrideType = "GOOGLE_MALICIOUS";
+    score = 99;
+  } else if (isUrlhausOnline) {
+    overrideType = "URLHAUS_ONLINE";
+    score = 99;
+  } else {
+    overrideType = "VIRUSTOTAL_DETECTIONS";
+    score = 95;
+  }
+
+  return {
+    triggered: true,
+    score,
+    level: "CRITICAL",
+    overrideType,
+    reasons: triggeredReasons,
+    primaryReason: triggeredReasons.join(" "),
+  };
+}
+
+// ============================================================================
+// Stage 2: Normal Weighted Risk Calculation Engine
+// ============================================================================
+
+export interface WeightedRiskResult {
+  score: number;
+  level: RiskLevel;
+}
+
+export function calculateWeightedRisk(params: {
+  allFindings: SecurityFinding[];
+  allFactors: RiskFactor[];
+}): WeightedRiskResult {
+  const { allFindings } = params;
+
+  const criticalFindings = allFindings.filter((f) => f.severity === "CRITICAL");
+  const highFindings = allFindings.filter((f) => f.severity === "HIGH");
+  const moderateFindings = allFindings.filter((f) => f.severity === "MODERATE" || f.severity === "MEDIUM");
+  const lowFindings = allFindings.filter((f) => f.severity === "LOW");
+
+  let calculatedScore = 0;
+
+  // RULE A: Confirmed Critical Threat Evidence (when no override was triggered)
+  if (criticalFindings.length > 0) {
+    calculatedScore = 80;
+    if (criticalFindings.length >= 2) calculatedScore = 88;
+    if (highFindings.length > 0) calculatedScore += 5;
+    if (moderateFindings.length > 0) calculatedScore += 3;
+    calculatedScore = Math.min(100, calculatedScore);
+  }
+  // RULE B: High Severity Evidence (e.g. credential spoofing, raw IP with sensitive path, SSL hostname mismatch)
+  else if (highFindings.length > 0) {
+    calculatedScore = 65;
+    if (highFindings.length >= 2) calculatedScore += 10;
+    if (moderateFindings.length > 0) calculatedScore += 5;
+    if (lowFindings.length > 0) calculatedScore += 2;
+    calculatedScore = Math.min(79, calculatedScore);
+  }
+  // RULE C: Moderate Severity Evidence (e.g. 2-3 VT detections, expired/self-signed SSL, Punycode, raw IP)
+  else if (moderateFindings.length > 0) {
+    calculatedScore = 40;
+    calculatedScore += Math.min(18, (moderateFindings.length - 1) * 6);
+    if (lowFindings.length > 0) calculatedScore += 4;
+    calculatedScore = Math.min(59, calculatedScore);
+  }
+  // RULE D: Low Severity Evidence Only (e.g. unencrypted HTTP, long URL, high-risk TLD, 1 VT detection)
+  else if (lowFindings.length > 0) {
+    const hasSingleVt = lowFindings.some((f) => f.finding === "VT_SINGLE_VENDOR_DETECTION");
+    calculatedScore = hasSingleVt ? 28 : 20;
+    calculatedScore += Math.min(12, (lowFindings.length - 1) * 4);
+    calculatedScore = Math.min(38, calculatedScore);
+  }
+  // RULE E: Clean / Informational Baseline
+  else {
+    calculatedScore = 0;
+  }
+
+  const finalScore = Math.max(0, Math.min(100, Math.round(calculatedScore)));
+  return {
+    score: finalScore,
+    level: getRiskLevel(finalScore),
+  };
+}
+
 export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvaluation {
   const { normalizedUrl, domain, ssl, sslAnalysis, safeBrowsing, virusTotal, urlhaus, urlIntelligence } = params;
 
@@ -936,7 +1133,7 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
     ...sslFindings,
   ];
 
-  // 2. Backward compatibility: compute factor representations
+  // 2. Factor representations for backward compatibility and weighting
   const safeBrowsingFactor = calculateSafeBrowsingScore(safeBrowsing);
   const virusTotalFactor = calculateVirusTotalScore(virusTotal);
   const urlhausFactor = calculateUrlhausScore(urlhaus);
@@ -964,6 +1161,10 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
       factors: allFactors,
       summary,
       analysisStatus: "INSUFFICIENT_DATA",
+      overrideTriggered: false,
+      overrideReason: null,
+      overrideType: null,
+      calculationMethod: "WEIGHTED_CALCULATION",
     };
 
     return {
@@ -979,6 +1180,10 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
       assessment,
       analysisStatus: "INSUFFICIENT_DATA",
       summary,
+      overrideTriggered: false,
+      overrideReason: null,
+      overrideType: null,
+      calculationMethod: "WEIGHTED_CALCULATION",
     };
   }
 
@@ -987,85 +1192,42 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
   const allExternalFailed = externalFactors.every((f) => !f.available || f.score === null);
   const analysisStatus: "COMPLETE" | "LIMITED" = allExternalFailed ? "LIMITED" : "COMPLETE";
 
-  // 3. Evidence-Based Scoring Synthesis
-  // Filter actionable threat findings (excluding INFO / clean / unavailable findings)
-  const criticalFindings = allFindings.filter((f) => f.severity === "CRITICAL");
-  const highFindings = allFindings.filter((f) => f.severity === "HIGH");
-  const mediumFindings = allFindings.filter((f) => f.severity === "MEDIUM");
-  const lowFindings = allFindings.filter((f) => f.severity === "LOW");
+  // ==========================================================================
+  // STAGE 1: Mandatory Short-Circuit Override Rules Check
+  // The system MUST ALWAYS check the override rules FIRST.
+  // Only when NO override condition is triggered should normal weighted risk run.
+  // ==========================================================================
+  const override = checkShortCircuitOverrides({ safeBrowsing, urlhaus, virusTotal });
 
-  // Track independent external malicious sources (Safe Browsing, VirusTotal, URLhaus)
-  const independentConfirmedSources = new Set<string>();
-  if (safeBrowsingFindings.some((f) => f.isConfirmedThreat)) {
-    independentConfirmedSources.add("Google Safe Browsing");
-  }
-  if (urlhausFindings.some((f) => f.isConfirmedThreat)) {
-    independentConfirmedSources.add("URLhaus");
-  }
-  if (virusTotalFindings.some((f) => f.isConfirmedThreat)) {
-    independentConfirmedSources.add("VirusTotal");
-  }
+  let finalScore: number;
+  let riskLevel: RiskLevel;
+  let overrideTriggered: boolean;
+  let overrideReason: string | null;
+  let overrideType: OverrideType;
+  let calculationMethod: CalculationMethod;
 
-  let calculatedScore = 0;
-
-  // RULE A: Confirmed Critical Threat Evidence (Dominates all other signals)
-  if (criticalFindings.length > 0 || independentConfirmedSources.size > 0) {
-    if (independentConfirmedSources.size >= 3 || criticalFindings.length >= 3) {
-      // 3 independent threat feeds agree (e.g. Safe Browsing + URLhaus + VirusTotal)
-      calculatedScore = 95;
-    } else if (independentConfirmedSources.size === 2 || criticalFindings.length === 2) {
-      // 2 independent threat feeds agree
-      calculatedScore = 88;
-    } else {
-      // 1 verified critical source
-      const isMalware = criticalFindings.some((f) => f.finding.includes("MALWARE"));
-      calculatedScore = isMalware ? 85 : 80;
-    }
-
-    // Additional supporting evidence increases score towards 100
-    if (highFindings.length > 0) calculatedScore += 5;
-    if (mediumFindings.length > 0) calculatedScore += 3;
-    if (criticalFindings.length >= 3 && highFindings.length > 0) calculatedScore = 100;
-    calculatedScore = Math.min(100, calculatedScore);
+  if (override.triggered) {
+    finalScore = override.score;
+    riskLevel = override.level; // "CRITICAL"
+    overrideTriggered = true;
+    overrideReason = override.primaryReason;
+    overrideType = override.overrideType;
+    calculationMethod = "SHORT_CIRCUIT_OVERRIDE";
+  } else {
+    // ==========================================================================
+    // STAGE 2: Normal Weighted Risk Calculation
+    // ==========================================================================
+    const weightedResult = calculateWeightedRisk({ allFindings, allFactors });
+    finalScore = weightedResult.score;
+    riskLevel = weightedResult.level;
+    overrideTriggered = false;
+    overrideReason = null;
+    overrideType = null;
+    calculationMethod = "WEIGHTED_CALCULATION";
   }
 
-  // RULE B: High Severity Evidence (e.g., 4-9 VT detections, SSL hostname mismatch, credential spoofing, raw IP with sensitive path)
-  else if (highFindings.length > 0) {
-    calculatedScore = 65;
-    if (highFindings.length >= 2) calculatedScore += 10;
-    if (mediumFindings.length > 0) calculatedScore += 5;
-    if (lowFindings.length > 0) calculatedScore += 2;
-    calculatedScore = Math.min(79, calculatedScore);
-  }
-
-  // RULE C: Medium Severity Evidence (e.g., 2-3 VT, expired/self-signed SSL, Punycode, raw IP)
-  else if (mediumFindings.length > 0) {
-    calculatedScore = 40;
-    // Diminishing returns for multiple medium indicators
-    calculatedScore += Math.min(18, (mediumFindings.length - 1) * 6);
-    if (lowFindings.length > 0) calculatedScore += 4;
-    calculatedScore = Math.min(59, calculatedScore);
-  }
-
-  // RULE D: Low Severity Evidence Only (e.g., unencrypted HTTP, long URL, high-risk TLD, 1 VT detection)
-  else if (lowFindings.length > 0) {
-    // 1 VT detection carries more weight than purely cosmetic URL length
-    const hasSingleVt = lowFindings.some((f) => f.finding === "VT_SINGLE_VENDOR_DETECTION");
-    calculatedScore = hasSingleVt ? 28 : 20;
-    calculatedScore += Math.min(12, (lowFindings.length - 1) * 4);
-    calculatedScore = Math.min(38, calculatedScore);
-  }
-
-  // RULE E: Clean / Informational Baseline
-  else {
-    // Completely clean URL
-    calculatedScore = 0;
-  }
-
-  // 4. Distribute Contributions to RiskFactor models for backward compatibility
-  const finalScore = Math.max(0, Math.min(100, Math.round(calculatedScore)));
+  // Distribute factor contributions so sum of contributions equals finalScore
   const threatFactors = allFactors.filter((f) => f.available && f.score !== null && f.score > 0);
-
   if (threatFactors.length > 0 && finalScore > 0) {
     const totalRaw = threatFactors.reduce((sum, f) => sum + (f.score as number), 0);
     let distributedSum = 0;
@@ -1073,7 +1235,6 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
     for (let i = 0; i < threatFactors.length; i++) {
       const f = threatFactors[i];
       if (i === threatFactors.length - 1) {
-        // Last factor gets remainder to guarantee exact sum = finalScore
         f.contribution = parseFloat((finalScore - distributedSum).toFixed(2));
       } else {
         const share = Math.round((((f.score as number) / totalRaw) * finalScore) * 100) / 100;
@@ -1087,15 +1248,17 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
     }
   }
 
-  // Calculate confidence and risk level
-  const riskLevel = getRiskLevel(finalScore);
   const confidence = calculateConfidence(allFactors);
 
-  // 5. Build human-readable explanations & reasons
+  // Build reasons and applied rules
   const reasons: string[] = [];
   const appliedRules: string[] = [];
 
-  // Add all non-INFO findings into reasons and applied rules
+  if (overrideTriggered && overrideReason) {
+    reasons.push(`[CRITICAL] Short-Circuit Override: ${overrideReason}`);
+    appliedRules.push(`Short-Circuit Override -> ${overrideType} (Score: ${finalScore})`);
+  }
+
   const activeFindings = allFindings.filter((f) => f.severity !== "INFO");
   for (const finding of activeFindings) {
     reasons.push(`[${finding.severity}] ${finding.source}: ${finding.explanation}`);
@@ -1108,15 +1271,12 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
 
   // Build high-level summary
   let summary = "";
-  if (allExternalFailed) {
+  if (overrideTriggered) {
+    summary = `Critical threat detected (${finalScore}/100 - ${riskLevel}). Short-Circuit Override: ${overrideReason} Accessing this destination poses immediate cybersecurity risks.`;
+  } else if (allExternalFailed) {
     summary = "External threat intelligence services were unavailable. This result is based on local URL structure and SSL/TLS analysis.";
   } else if (riskLevel === "CRITICAL" || riskLevel === "HIGH") {
-    if (independentConfirmedSources.size > 0) {
-      const names = Array.from(independentConfirmedSources).join(", ");
-      summary = `Severe threat detected (${finalScore}/100 - ${riskLevel}). Confirmed malicious indicators identified by: ${names}. Accessing this destination poses immediate cybersecurity risks.`;
-    } else {
-      summary = `High risk detected (${finalScore}/100 - ${riskLevel}). Multiple security anomalies or vendor detections identified. Proceed with extreme caution.`;
-    }
+    summary = `High risk detected (${finalScore}/100 - ${riskLevel}). Multiple security anomalies or vendor detections identified. Proceed with extreme caution.`;
   } else if (riskLevel === "MODERATE") {
     summary = `Moderate risk (${finalScore}/100 - ${riskLevel}). Noticeable security weaknesses or suspicious attributes identified. Avoid entering sensitive credentials.`;
   } else if (riskLevel === "LOW") {
@@ -1139,6 +1299,10 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
     factors: allFactors,
     summary,
     analysisStatus,
+    overrideTriggered,
+    overrideReason,
+    overrideType,
+    calculationMethod,
   };
 
   return {
@@ -1154,5 +1318,9 @@ export function calculateRiskScore(params: CalculateRiskScoreParams): RiskEvalua
     assessment,
     analysisStatus,
     summary,
+    overrideTriggered,
+    overrideReason,
+    overrideType,
+    calculationMethod,
   };
 }

@@ -20,6 +20,10 @@ export interface SecurityAnalysisInput {
   riskLevel: string; // "SAFE" | "LOW" | "MODERATE" | "HIGH" | "CRITICAL" | "INCONCLUSIVE"
   confidence: number;
   factors: SecurityFactorSummary[];
+  overrideTriggered?: boolean;
+  overrideReason?: string | null;
+  overrideType?: string | null;
+  calculationMethod?: string;
   securityEvidence?: {
     ssl?: {
       valid: boolean;

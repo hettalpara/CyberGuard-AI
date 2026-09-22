@@ -248,6 +248,10 @@ export async function performUrlAnalysis(params: {
       riskScore: risk.score,
       riskLevel: risk.level,
       confidence: risk.confidence,
+      overrideTriggered: risk.overrideTriggered,
+      overrideReason: risk.overrideReason,
+      overrideType: risk.overrideType,
+      calculationMethod: risk.calculationMethod,
       factors: (risk.factors || []).map((f) => ({
         name: f.name,
         score: f.score,
@@ -331,6 +335,10 @@ export async function performUrlAnalysis(params: {
     confidence: risk.confidence,
     riskCalculationVersion: "2.0",
     analysisStatus: risk.analysisStatus,
+    overrideTriggered: risk.overrideTriggered,
+    overrideReason: risk.overrideReason,
+    overrideType: risk.overrideType,
+    calculationMethod: risk.calculationMethod,
     risk: {
       score: risk.score,
       level: risk.level,
@@ -339,6 +347,10 @@ export async function performUrlAnalysis(params: {
       factors: risk.factors,
       findings: risk.findings,
       analysisStatus: risk.analysisStatus,
+      overrideTriggered: risk.overrideTriggered,
+      overrideReason: risk.overrideReason,
+      overrideType: risk.overrideType,
+      calculationMethod: risk.calculationMethod,
     },
     urlIntelligence: {
       status: urlIntelligence.status,

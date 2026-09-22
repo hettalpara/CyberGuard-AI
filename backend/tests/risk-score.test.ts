@@ -3,6 +3,8 @@ import {
   calculateRiskScore,
   getRiskLevel,
   FACTOR_WEIGHTS,
+  checkShortCircuitOverrides,
+  calculateWeightedRisk,
 } from "../src/services/risk-score.service";
 import { SslAnalysisResult } from "../src/services/ssl.service";
 import { VirusTotalResult } from "../src/services/virustotal.service";
@@ -489,8 +491,10 @@ describe("Evidence-Based Risk Scoring Engine", () => {
     });
 
     expect(result.score).toBeLessThanOrEqual(100);
-    expect(result.score).toBe(100);
+    expect(result.score).toBe(99);
     expect(result.level).toBe("CRITICAL");
+    expect(result.overrideTriggered).toBe(true);
+    expect(result.calculationMethod).toBe("SHORT_CIRCUIT_OVERRIDE");
   });
 
   // 19. Risk level boundaries
@@ -532,5 +536,446 @@ describe("Evidence-Based Risk Scoring Engine", () => {
 
   it("exports backward compatible FACTOR_WEIGHTS array", () => {
     expect(FACTOR_WEIGHTS).toHaveLength(5);
+  });
+});
+
+describe("Short-Circuit Override Rules and Two-Stage Risk Engine", () => {
+  const cleanSsl: SslAnalysisResult = {
+    enabled: true,
+    valid: true,
+    status: "valid",
+    issuer: "DigiCert Global Root G2",
+    validDaysRemaining: 240,
+  };
+
+  const cleanSafeBrowsing: SafeBrowsingResult = {
+    checked: true,
+    available: true,
+    status: "CHECKED_NO_THREAT",
+    threatDetected: false,
+    threatTypes: [],
+    score: 0,
+    provider: "GOOGLE_SAFE_BROWSING",
+    reason: "No threats detected by Google Safe Browsing",
+    checkedAt: new Date().toISOString(),
+  };
+
+  const cleanVT: VirusTotalResult = {
+    checked: true,
+    available: true,
+    malicious: false,
+    suspicious: false,
+    harmless: 70,
+    maliciousCount: 0,
+    suspiciousCount: 0,
+    undetectedCount: 2,
+    totalEngines: 72,
+    detectionRatio: "0/72",
+    enginesFlagged: 0,
+    permalink: null,
+    status: "clean",
+  };
+
+  const cleanUrlhaus: UrlhausResult = {
+    available: true,
+    status: "CHECKED_NO_MATCH",
+    match: false,
+    provider: "URLHAUS",
+    reason: "No active malware distribution detected by URLhaus",
+    checkedAt: new Date().toISOString(),
+  };
+
+  // 1. Google malicious override
+  it("1. Google malicious override: triggers score 99, CRITICAL, overrideTriggered = true, calculationMethod = SHORT_CIRCUIT_OVERRIDE", () => {
+    const maliciousSB: SafeBrowsingResult = {
+      ...cleanSafeBrowsing,
+      status: "THREAT_DETECTED",
+      threatDetected: true,
+      threatTypes: ["SOCIAL_ENGINEERING"],
+      score: 90,
+      reason: "Google Safe Browsing detected a phishing threat.",
+    };
+
+    const result = calculateRiskScore({
+      normalizedUrl: "https://phishing-login.example.com",
+      domain: "phishing-login.example.com",
+      ssl: cleanSsl,
+      safeBrowsing: maliciousSB,
+      virusTotal: cleanVT,
+      urlhaus: cleanUrlhaus,
+    });
+
+    expect(result.score).toBe(99);
+    expect(result.level).toBe("CRITICAL");
+    expect(result.overrideTriggered).toBe(true);
+    expect(result.overrideType).toBe("GOOGLE_MALICIOUS");
+    expect(result.overrideReason).toContain("Google Safe Browsing detected a malicious threat.");
+    expect(result.calculationMethod).toBe("SHORT_CIRCUIT_OVERRIDE");
+  });
+
+  // 2. URLhaus online override
+  it("2. URLhaus online override: triggers score 99, CRITICAL, overrideTriggered = true, calculationMethod = SHORT_CIRCUIT_OVERRIDE", () => {
+    const onlineUrlhaus: UrlhausResult = {
+      available: true,
+      status: "MALWARE_URL_DETECTED",
+      match: true,
+      threatType: "malware_download",
+      provider: "URLHAUS",
+      reason: "Active payload online",
+      checkedAt: new Date().toISOString(),
+    };
+
+    const result = calculateRiskScore({
+      normalizedUrl: "http://malware-drop.biz/payload.bin",
+      domain: "malware-drop.biz",
+      ssl: cleanSsl,
+      safeBrowsing: cleanSafeBrowsing,
+      virusTotal: cleanVT,
+      urlhaus: onlineUrlhaus,
+    });
+
+    expect(result.score).toBe(99);
+    expect(result.level).toBe("CRITICAL");
+    expect(result.overrideTriggered).toBe(true);
+    expect(result.overrideType).toBe("URLHAUS_ONLINE");
+    expect(result.overrideReason).toContain("URLhaus identified the URL as an active malicious URL.");
+    expect(result.calculationMethod).toBe("SHORT_CIRCUIT_OVERRIDE");
+  });
+
+  // 3. VirusTotal 4 detections override
+  it("3. VirusTotal 4 detections override: triggers score 95, CRITICAL, overrideTriggered = true, calculationMethod = SHORT_CIRCUIT_OVERRIDE", () => {
+    const vt4: VirusTotalResult = {
+      ...cleanVT,
+      malicious: true,
+      maliciousCount: 4,
+      detectionRatio: "4/70",
+      status: "threat_found",
+    };
+
+    const result = calculateRiskScore({
+      normalizedUrl: "https://suspicious-domain.com",
+      domain: "suspicious-domain.com",
+      ssl: cleanSsl,
+      safeBrowsing: cleanSafeBrowsing,
+      virusTotal: vt4,
+      urlhaus: cleanUrlhaus,
+    });
+
+    expect(result.score).toBe(95);
+    expect(result.level).toBe("CRITICAL");
+    expect(result.overrideTriggered).toBe(true);
+    expect(result.overrideType).toBe("VIRUSTOTAL_DETECTIONS");
+    expect(result.overrideReason).toContain("VirusTotal reported four or more security detections.");
+    expect(result.calculationMethod).toBe("SHORT_CIRCUIT_OVERRIDE");
+  });
+
+  // 4. Multiple overrides priority and reason combination
+  it("4. Multiple overrides: does not downgrade 99 to 95 and mentions multiple critical signals", () => {
+    const maliciousSB: SafeBrowsingResult = {
+      ...cleanSafeBrowsing,
+      status: "THREAT_DETECTED",
+      threatDetected: true,
+      threatTypes: ["MALWARE"],
+    };
+    const onlineUrlhaus: UrlhausResult = {
+      available: true,
+      status: "MALWARE_URL_DETECTED",
+      match: true,
+      threatType: "malware_download",
+      provider: "URLHAUS",
+      reason: "Active payload online",
+      checkedAt: new Date().toISOString(),
+    };
+    const vt10: VirusTotalResult = {
+      ...cleanVT,
+      malicious: true,
+      maliciousCount: 10,
+      detectionRatio: "10/70",
+    };
+
+    // Google + URLhaus
+    const resGoogleUrlhaus = calculateRiskScore({
+      normalizedUrl: "https://danger.com",
+      domain: "danger.com",
+      ssl: cleanSsl,
+      safeBrowsing: maliciousSB,
+      virusTotal: cleanVT,
+      urlhaus: onlineUrlhaus,
+    });
+    expect(resGoogleUrlhaus.score).toBe(99);
+    expect(resGoogleUrlhaus.level).toBe("CRITICAL");
+    expect(resGoogleUrlhaus.overrideType).toBe("GOOGLE_MALICIOUS");
+    expect(resGoogleUrlhaus.overrideReason).toContain("Google Safe Browsing");
+    expect(resGoogleUrlhaus.overrideReason).toContain("URLhaus");
+
+    // Google + VT >= 4
+    const resGoogleVt = calculateRiskScore({
+      normalizedUrl: "https://danger.com",
+      domain: "danger.com",
+      ssl: cleanSsl,
+      safeBrowsing: maliciousSB,
+      virusTotal: vt10,
+      urlhaus: cleanUrlhaus,
+    });
+    expect(resGoogleVt.score).toBe(99);
+    expect(resGoogleVt.overrideType).toBe("GOOGLE_MALICIOUS");
+    expect(resGoogleVt.overrideReason).toContain("Google Safe Browsing");
+    expect(resGoogleVt.overrideReason).toContain("VirusTotal");
+
+    // URLhaus + VT >= 4
+    const resUrlhausVt = calculateRiskScore({
+      normalizedUrl: "https://danger.com",
+      domain: "danger.com",
+      ssl: cleanSsl,
+      safeBrowsing: cleanSafeBrowsing,
+      virusTotal: vt10,
+      urlhaus: onlineUrlhaus,
+    });
+    expect(resUrlhausVt.score).toBe(99);
+    expect(resUrlhausVt.overrideType).toBe("URLHAUS_ONLINE");
+    expect(resUrlhausVt.overrideReason).toContain("URLhaus");
+    expect(resUrlhausVt.overrideReason).toContain("VirusTotal");
+  });
+
+  // 5. No override -> weighted calculation
+  it("5. No override -> weighted calculation: executes weighted engine when no override is triggered", () => {
+    const result = calculateRiskScore({
+      normalizedUrl: "https://clean-verified-bank.com",
+      domain: "clean-verified-bank.com",
+      ssl: cleanSsl,
+      safeBrowsing: cleanSafeBrowsing,
+      virusTotal: cleanVT,
+      urlhaus: cleanUrlhaus,
+    });
+
+    expect(result.overrideTriggered).toBe(false);
+    expect(result.overrideReason).toBeNull();
+    expect(result.overrideType).toBeNull();
+    expect(result.calculationMethod).toBe("WEIGHTED_CALCULATION");
+    expect(result.score).toBeLessThanOrEqual(19);
+    expect(result.level).toBe("SAFE");
+  });
+
+  // 6. Google unavailable does not trigger override
+  it("6. Google unavailable: does NOT trigger override", () => {
+    const unavailSB: SafeBrowsingResult = {
+      ...cleanSafeBrowsing,
+      available: false,
+      status: "UNAVAILABLE",
+    };
+
+    const override = checkShortCircuitOverrides({ safeBrowsing: unavailSB, urlhaus: cleanUrlhaus, virusTotal: cleanVT });
+    expect(override.triggered).toBe(false);
+  });
+
+  // 7. URLhaus unavailable does not trigger override
+  it("7. URLhaus unavailable: does NOT trigger override for UNAVAILABLE, ERROR, or CHECKED_NO_MATCH", () => {
+    const unavailUh: UrlhausResult = {
+      available: false,
+      status: "UNAVAILABLE",
+      match: false,
+      provider: "URLHAUS",
+      reason: "Timeout",
+      checkedAt: new Date().toISOString(),
+    };
+    const errorUh: UrlhausResult = {
+      available: false,
+      status: "ERROR",
+      match: false,
+      provider: "URLHAUS",
+      reason: "Error",
+      checkedAt: new Date().toISOString(),
+    };
+
+    expect(checkShortCircuitOverrides({ urlhaus: unavailUh }).triggered).toBe(false);
+    expect(checkShortCircuitOverrides({ urlhaus: errorUh }).triggered).toBe(false);
+    expect(checkShortCircuitOverrides({ urlhaus: cleanUrlhaus }).triggered).toBe(false);
+  });
+
+  // 8. VirusTotal unavailable does not trigger override
+  it("8. VirusTotal unavailable: does NOT trigger override", () => {
+    const unavailVT: VirusTotalResult = {
+      checked: false,
+      available: false,
+      malicious: false,
+      suspicious: false,
+      maliciousCount: 0,
+      suspiciousCount: 0,
+      undetectedCount: 0,
+      totalEngines: 0,
+      status: "unavailable",
+    };
+
+    expect(checkShortCircuitOverrides({ virusTotal: unavailVT }).triggered).toBe(false);
+  });
+
+  // 9. VirusTotal 3 detections -> NO override
+  it("9. VirusTotal 3 detections: does NOT trigger override (runs normal weighted calculation)", () => {
+    const vt3: VirusTotalResult = {
+      ...cleanVT,
+      malicious: true,
+      maliciousCount: 3,
+      detectionRatio: "3/70",
+    };
+
+    const result = calculateRiskScore({
+      normalizedUrl: "https://moderate-risk-site.org",
+      domain: "moderate-risk-site.org",
+      ssl: cleanSsl,
+      safeBrowsing: cleanSafeBrowsing,
+      virusTotal: vt3,
+      urlhaus: cleanUrlhaus,
+    });
+
+    expect(result.overrideTriggered).toBe(false);
+    expect(result.calculationMethod).toBe("WEIGHTED_CALCULATION");
+    expect(result.level).toBe("MODERATE");
+  });
+
+  // 10. VirusTotal 4 detections -> override
+  it("10. VirusTotal 4 detections: triggers override with score 95", () => {
+    const vt4: VirusTotalResult = {
+      ...cleanVT,
+      malicious: true,
+      maliciousCount: 4,
+      detectionRatio: "4/70",
+    };
+
+    const override = checkShortCircuitOverrides({ virusTotal: vt4 });
+    expect(override.triggered).toBe(true);
+    expect(override.score).toBe(95);
+    expect(override.level).toBe("CRITICAL");
+    expect(override.overrideType).toBe("VIRUSTOTAL_DETECTIONS");
+  });
+
+  // 11–18. Risk boundaries
+  it("11. Risk boundary 19 -> SAFE", () => {
+    expect(getRiskLevel(19)).toBe("SAFE");
+  });
+
+  it("12. Risk boundary 20 -> LOW", () => {
+    expect(getRiskLevel(20)).toBe("LOW");
+  });
+
+  it("13. Risk boundary 39 -> LOW", () => {
+    expect(getRiskLevel(39)).toBe("LOW");
+  });
+
+  it("14. Risk boundary 40 -> MODERATE", () => {
+    expect(getRiskLevel(40)).toBe("MODERATE");
+  });
+
+  it("15. Risk boundary 59 -> MODERATE", () => {
+    expect(getRiskLevel(59)).toBe("MODERATE");
+  });
+
+  it("16. Risk boundary 60 -> HIGH", () => {
+    expect(getRiskLevel(60)).toBe("HIGH");
+  });
+
+  it("17. Risk boundary 79 -> HIGH", () => {
+    expect(getRiskLevel(79)).toBe("HIGH");
+  });
+
+  it("18. Risk boundary 80 -> CRITICAL", () => {
+    expect(getRiskLevel(80)).toBe("CRITICAL");
+  });
+
+  // 19. Override score 95 -> CRITICAL
+  it("19. Override score 95 -> CRITICAL", () => {
+    expect(getRiskLevel(95)).toBe("CRITICAL");
+  });
+
+  // 20. Override score 99 -> CRITICAL
+  it("20. Override score 99 -> CRITICAL", () => {
+    expect(getRiskLevel(99)).toBe("CRITICAL");
+  });
+
+  // ============================================================================
+  // Section 14 User Test Cases
+  // ============================================================================
+
+  it("TEST CASE 1: Google malicious only -> 99, CRITICAL, overrideTriggered = true, SHORT_CIRCUIT_OVERRIDE", () => {
+    const res = calculateRiskScore({
+      normalizedUrl: "https://evil.com",
+      domain: "evil.com",
+      ssl: cleanSsl,
+      safeBrowsing: { ...cleanSafeBrowsing, status: "THREAT_DETECTED", threatDetected: true, threatTypes: ["MALWARE"] },
+      virusTotal: { ...cleanVT, maliciousCount: 0 },
+      urlhaus: { ...cleanUrlhaus, status: "CHECKED_NO_MATCH", match: false },
+    });
+
+    expect(res.score).toBe(99);
+    expect(res.level).toBe("CRITICAL");
+    expect(res.overrideTriggered).toBe(true);
+    expect(res.calculationMethod).toBe("SHORT_CIRCUIT_OVERRIDE");
+  });
+
+  it("TEST CASE 2: URLhaus online -> 99, CRITICAL, overrideTriggered = true, SHORT_CIRCUIT_OVERRIDE", () => {
+    const res = calculateRiskScore({
+      normalizedUrl: "https://evil.com",
+      domain: "evil.com",
+      ssl: cleanSsl,
+      safeBrowsing: cleanSafeBrowsing,
+      virusTotal: { ...cleanVT, maliciousCount: 1 },
+      urlhaus: { ...cleanUrlhaus, status: "MALWARE_URL_DETECTED", match: true },
+    });
+
+    expect(res.score).toBe(99);
+    expect(res.level).toBe("CRITICAL");
+    expect(res.overrideTriggered).toBe(true);
+    expect(res.calculationMethod).toBe("SHORT_CIRCUIT_OVERRIDE");
+  });
+
+  it("TEST CASE 3: VirusTotal 4 detections -> 95, CRITICAL, overrideTriggered = true, SHORT_CIRCUIT_OVERRIDE", () => {
+    const res = calculateRiskScore({
+      normalizedUrl: "https://evil.com",
+      domain: "evil.com",
+      ssl: cleanSsl,
+      safeBrowsing: cleanSafeBrowsing,
+      urlhaus: cleanUrlhaus,
+      virusTotal: { ...cleanVT, malicious: true, maliciousCount: 4, detectionRatio: "4/70" },
+    });
+
+    expect(res.score).toBe(95);
+    expect(res.level).toBe("CRITICAL");
+    expect(res.overrideTriggered).toBe(true);
+    expect(res.calculationMethod).toBe("SHORT_CIRCUIT_OVERRIDE");
+  });
+
+  it("TEST CASE 4: VirusTotal 2 detections, no override -> normal weighted calculation", () => {
+    const res = calculateRiskScore({
+      normalizedUrl: "https://somewhat-suspicious.com",
+      domain: "somewhat-suspicious.com",
+      ssl: cleanSsl,
+      safeBrowsing: cleanSafeBrowsing,
+      urlhaus: cleanUrlhaus,
+      virusTotal: { ...cleanVT, malicious: true, maliciousCount: 2, detectionRatio: "2/70" },
+    });
+
+    expect(res.overrideTriggered).toBe(false);
+    expect(res.calculationMethod).toBe("WEIGHTED_CALCULATION");
+    expect(res.level).toBe("MODERATE");
+  });
+
+  it("TEST CASE 5: External providers UNAVAILABLE -> NO override, confidence handling without false malicious", () => {
+    const unavailSB: SafeBrowsingResult = { ...cleanSafeBrowsing, available: false, status: "UNAVAILABLE" };
+    const unavailUh: UrlhausResult = { ...cleanUrlhaus, available: false, status: "UNAVAILABLE" };
+    const unavailVT: VirusTotalResult = { ...cleanVT, available: false, status: "unavailable" };
+
+    const res = calculateRiskScore({
+      normalizedUrl: "https://internal-portal.com",
+      domain: "internal-portal.com",
+      ssl: cleanSsl,
+      safeBrowsing: unavailSB,
+      urlhaus: unavailUh,
+      virusTotal: unavailVT,
+    });
+
+    expect(res.overrideTriggered).toBe(false);
+    expect(res.calculationMethod).toBe("WEIGHTED_CALCULATION");
+    expect(res.level).toBe("SAFE");
+    expect(res.analysisStatus).toBe("LIMITED");
+    expect(res.confidence).toBeLessThanOrEqual(45);
   });
 });

@@ -186,8 +186,15 @@ export async function generateIncidentReportPdf(report: IIncidentReport): Promis
       .text(safeUrl, { width: contentWidth })
       .moveDown(0.4);
 
+    const isOverride = Boolean(snap.overrideTriggered);
+    const calcMethod = isOverride ? "Short-Circuit Override" : "Normal Weighted Calculation";
+    drawField("Risk Calculation Method", calcMethod);
+    if (isOverride && snap.overrideReason) {
+      drawField("Override", snap.overrideReason);
+    }
+
     // Risk Meter Box
-    const boxY = doc.y;
+    const boxY = doc.y + 4;
     doc
       .rect(45, boxY, contentWidth, 38)
       .fill("#F1F5F9")
@@ -196,34 +203,35 @@ export async function generateIncidentReportPdf(report: IIncidentReport): Promis
       .stroke();
 
     const scoreDisplay = snap.riskScore !== null ? `${snap.riskScore} / 100` : "INCONCLUSIVE";
+    const displayLevel = (snap.riskLevel || "SAFE").toUpperCase().replace("MEDIUM", "MODERATE");
 
     doc
       .font("Helvetica-Bold")
       .fontSize(10)
       .fillColor("#1E293B")
-      .text("Risk Score:", 55, boxY + 8)
+      .text("Final Risk Score:", 55, boxY + 8)
       .fillColor(riskLevelColor)
       .fontSize(14)
-      .text(scoreDisplay, 125, boxY + 6);
+      .text(scoreDisplay, 145, boxY + 6);
 
     doc
       .font("Helvetica-Bold")
       .fontSize(10)
       .fillColor("#1E293B")
-      .text("Risk Level:", 240, boxY + 8)
+      .text("Final Risk Level:", 260, boxY + 8)
       .fillColor(riskLevelColor)
       .fontSize(12)
-      .text(snap.riskLevel.toUpperCase(), 305, boxY + 7);
+      .text(displayLevel, 345, boxY + 7);
 
     doc
       .font("Helvetica-Bold")
       .fontSize(10)
       .fillColor("#1E293B")
-      .text("Confidence:", 410, boxY + 8)
+      .text("Confidence:", 430, boxY + 8)
       .font("Helvetica")
       .fillColor("#334155")
       .fontSize(11)
-      .text(`${snap.confidence}%`, 480, boxY + 7);
+      .text(`${snap.confidence}%`, 495, boxY + 7);
 
     doc.y = boxY + 48;
 

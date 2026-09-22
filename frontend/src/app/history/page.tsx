@@ -16,7 +16,7 @@ interface HistoryItem {
   id: string;
   url: string;
   riskScore: number;
-  threatLevel: "SAFE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  threatLevel: "SAFE" | "LOW" | "MODERATE" | "HIGH" | "CRITICAL";
   safeBrowsingStatus: string;
   urlhausStatus: string;
   virusTotalRatio: string;
@@ -71,7 +71,7 @@ export default function HistoryPage() {
       id: "HIS-005",
       url: "http://free-giftcard-claim.net",
       riskScore: 65,
-      threatLevel: "MEDIUM",
+      threatLevel: "MODERATE",
       safeBrowsingStatus: "UNAVAILABLE",
       urlhausStatus: "CHECKED_NO_MATCH",
       virusTotalRatio: "3/70",
@@ -102,7 +102,7 @@ export default function HistoryPage() {
               id: s.id ? `SCN-${s.id.slice(-5).toUpperCase()}` : `HIS-00${idx + 1}`,
               url: s.url,
               riskScore: s.riskScore ?? s.risk?.score ?? 0,
-              threatLevel: level === "MODERATE" ? "MEDIUM" : level,
+              threatLevel: level === "MEDIUM" ? "MODERATE" : level,
               safeBrowsingStatus: sbStatus,
               urlhausStatus: uhStatus,
               virusTotalRatio: vtRatio,

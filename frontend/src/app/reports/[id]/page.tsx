@@ -10,7 +10,8 @@ import {
   ArrowLeft,
   CheckCircle2,
   Bot,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -154,7 +155,8 @@ export default function ReportDetailPage() {
   };
 
   const snap = report?.snapshot;
-  const threatLevel = snap?.riskLevel || "SAFE";
+  const rawLevel = snap?.riskLevel || "SAFE";
+  const threatLevel = rawLevel === "MEDIUM" ? "MODERATE" : rawLevel;
   const riskScore = snap?.riskScore !== null && snap?.riskScore !== undefined ? snap.riskScore : null;
 
   return (
@@ -463,6 +465,26 @@ export default function ReportDetailPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="p-6 space-y-5 text-xs">
+                    {/* Short-Circuit Override Notice if applicable */}
+                    {snap?.overrideTriggered && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[11px] font-black uppercase text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-300">
+                              Short-Circuit Override Triggered
+                            </span>
+                            <span className="text-[11px] text-slate-500">
+                              Calculation Method: <strong className="text-slate-800">Short-Circuit Override</strong>
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold text-red-900 mt-1">
+                            {snap.overrideReason || "Critical threat detected by primary security provider."}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* URL row */}
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
