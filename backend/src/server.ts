@@ -41,6 +41,17 @@ app.use(
   })
 );
 
+// ─── Ensure DB Connection (Serverless Compatible) ──────────────
+// On Vercel, each request may be a cold start — ensure MongoDB is connected
+app.use(async (_req, _res, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error("DB connection middleware error:", err);
+  }
+  next();
+});
+
 // ─── Health Check Endpoints (Root & API) ───────────────────────
 
 // Root endpoint
