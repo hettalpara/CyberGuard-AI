@@ -154,6 +154,10 @@ const gracefulShutdown = (signal: string) => {
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-startServer();
+// Only start the HTTP server when NOT on Vercel (Vercel handles HTTP itself)
+if (!process.env.VERCEL) {
+  startServer();
+}
 
 export default app;
+
