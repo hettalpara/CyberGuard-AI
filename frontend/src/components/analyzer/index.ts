@@ -7,3 +7,4 @@ export { EvidenceFindingsCard } from "./evidence-findings-card";
 export { AiAssessmentCard } from "./ai-assessment-card";
 export { RiskSummarySection } from "./risk-summary-section";
 export { EmailAnalyzerSection } from "./email-analyzer-section";
+export { AnalyzerErrorBoundary } from "./analyzer-error-boundary";

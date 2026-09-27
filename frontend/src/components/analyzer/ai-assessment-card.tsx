@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bot } from "lucide-react";
+import { Bot, AlertCircle } from "lucide-react";
 import type { AIAnalysisData } from "@/services/analyzer.service";
 
 interface AiAssessmentCardProps {
-  aiAnalysis?: AIAnalysisData;
+  aiAnalysis?: AIAnalysisData | null;
   aiExplanation?: string;
   recommendedActions?: string[];
   scanId?: string;
@@ -17,19 +17,40 @@ export function AiAssessmentCard({
   aiAnalysis,
   aiExplanation,
   recommendedActions = [],
-  threatLevel,
+  threatLevel = "SAFE",
 }: AiAssessmentCardProps) {
   const [activeTab, setActiveTab] = useState<"Summary" | "Threat Details" | "Key Indicators" | "Recommendations">("Summary");
 
-  const summary = aiAnalysis?.summary || aiExplanation || 
-    (threatLevel === "SAFE"
+  const safeThreatLevel = typeof threatLevel === "string" ? threatLevel.toUpperCase() : "SAFE";
+
+  const isAiUnavailable = aiAnalysis && aiAnalysis.available === false;
+
+  const summary = 
+    aiAnalysis?.summary || 
+    aiExplanation || 
+    (safeThreatLevel === "SAFE"
       ? "Analysis across threat intelligence feeds and local heuristics indicates no immediate malicious indicators."
       : "Automated threat intelligence analysis identified suspicious characteristics that require defensive caution.");
 
-  const threatType = aiAnalysis?.threatType || (threatLevel === "SAFE" ? "Benign / Normal" : "Suspicious Activity");
-  const aiConfidence = aiAnalysis?.confidenceNote || "High";
-  const indicators = aiAnalysis?.keyIndicators || [];
-  const recommendations = aiAnalysis?.recommendedActions || recommendedActions;
+  const threatType = 
+    aiAnalysis?.threatType || 
+    (safeThreatLevel === "SAFE" ? "Benign / Normal" : "Suspicious Activity");
+
+  const rawConfidence = aiAnalysis?.confidenceNote;
+  const confidenceString = typeof rawConfidence === "string" ? rawConfidence.trim() : "";
+  const displayConfidence = confidenceString.includes("%") 
+    ? confidenceString 
+    : confidenceString.length > 0 && confidenceString.length <= 20 
+    ? confidenceString 
+    : "High";
+
+  const indicators = Array.isArray(aiAnalysis?.keyIndicators) ? aiAnalysis.keyIndicators : [];
+  const rawRecs = Array.isArray(aiAnalysis?.recommendedActions) && aiAnalysis.recommendedActions.length > 0 
+    ? aiAnalysis.recommendedActions 
+    : Array.isArray(recommendedActions) 
+    ? recommendedActions 
+    : [];
+  const recommendations = rawRecs.filter((r) => typeof r === "string" && r.trim().length > 0);
 
   return (
     <div className="card-cg ai-panel-cg">
@@ -42,6 +63,14 @@ export function AiAssessmentCard({
       </div>
 
       <div className="card-body-cg">
+        {/* If AI is explicitly unavailable */}
+        {isAiUnavailable && (
+          <div className="notice-cg" style={{ marginBottom: 12, fontSize: 10 }}>
+            <AlertCircle size={13} style={{ verticalAlign: "middle", marginRight: 6 }} />
+            AI analysis temporarily unavailable. Multi-source deterministic security analysis remains fully operational.
+          </div>
+        )}
+
         {/* Quick Tabs */}
         <div className="quick-cg" style={{ marginBottom: 12 }}>
           {(["Summary", "Threat Details", "Key Indicators", "Recommendations"] as const).map((tab) => (
@@ -74,7 +103,7 @@ export function AiAssessmentCard({
               {indicators.length > 0 ? (
                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                   {indicators.map((ind, i) => (
-                    <li key={i}>{ind}</li>
+                    <li key={`indicator-${i}-${String(ind).slice(0, 15)}`}>{String(ind)}</li>
                   ))}
                 </ul>
               ) : (
@@ -84,11 +113,15 @@ export function AiAssessmentCard({
           )}
           {activeTab === "Recommendations" && (
             <div>
-              <ul style={{ margin: 0, paddingLeft: 16 }}>
-                {recommendations.slice(0, 3).map((rec, i) => (
-                  <li key={i}>{rec}</li>
-                ))}
-              </ul>
+              {recommendations.length > 0 ? (
+                <ul style={{ margin: 0, paddingLeft: 16 }}>
+                  {recommendations.slice(0, 3).map((rec, i) => (
+                    <li key={`recommendation-${i}-${String(rec).slice(0, 15)}`}>{String(rec)}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ margin: 0 }}>Follow standard cybersecurity protocols when accessing this resource.</p>
+              )}
             </div>
           )}
         </div>
@@ -105,7 +138,7 @@ export function AiAssessmentCard({
           <div className="card-cg stat-cg" style={{ minHeight: 70, padding: 11 }}>
             <div className="label-cg">AI Confidence</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#51dda1", marginTop: 7 }}>
-              {aiConfidence.includes("%") ? aiConfidence : "High"}
+              {displayConfidence}
             </div>
           </div>
         </div>

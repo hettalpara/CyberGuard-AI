@@ -25,9 +25,10 @@ export function RiskSummarySection({
   overrideTriggered,
   overrideReason,
 }: RiskSummarySectionProps) {
-  const normLevel = normalizeRiskLevel(riskLevel);
-  const isScoreAvailable = riskScore !== null && !isNaN(riskScore);
-  const scoreVal = isScoreAvailable ? riskScore : 0;
+  const normLevel = normalizeRiskLevel(riskLevel || "SAFE");
+  const isScoreAvailable = riskScore !== null && riskScore !== undefined && !isNaN(riskScore);
+  const scoreVal = isScoreAvailable ? Math.round(riskScore) : 0;
+  const safeConfidence = typeof confidence === "number" && !isNaN(confidence) ? Math.round(confidence) : 0;
 
   const levelColor =
     normLevel === "CRITICAL" ? "#ef4444" :
@@ -41,11 +42,11 @@ export function RiskSummarySection({
       {overrideTriggered && (
         <div className="notice-cg" style={{ borderColor: "rgba(239,68,68,.3)", color: "var(--red)", background: "rgba(239,68,68,.07)" }}>
           <AlertTriangle size={14} style={{ verticalAlign: "middle", marginRight: 7 }} />
-          <strong>Critical Override Triggered:</strong> {overrideReason || "Immediate high-severity threat detection bypassed weighted formula."}
+          <strong>Critical Override Triggered:</strong> {overrideReason ? String(overrideReason) : "Immediate high-severity threat detection bypassed weighted formula."}
         </div>
       )}
 
-      {/* Main Risk Assessment Card matching cyberguard-ai-ui */}
+      {/* Main Risk Assessment Card */}
       <div className="card-cg" style={{ borderColor: normLevel === "MODERATE" ? "rgba(245,165,36,.35)" : normLevel === "HIGH" || normLevel === "CRITICAL" ? "rgba(239,68,68,.35)" : undefined }}>
         <div className="card-head-cg">
           <div>
@@ -81,7 +82,7 @@ export function RiskSummarySection({
             <div className="card-cg stat-cg">
               <div className="label-cg">Confidence</div>
               <div className="risk-number-cg" style={{ color: "#52e3a5", fontSize: 38 }}>
-                {confidence}<span style={{ fontSize: 18 }}>%</span>
+                {safeConfidence}<span style={{ fontSize: 18 }}>%</span>
               </div>
               <div className="sub-cg">Evidence consistency</div>
             </div>

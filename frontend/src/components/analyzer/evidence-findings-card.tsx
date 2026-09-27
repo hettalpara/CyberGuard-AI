@@ -11,8 +11,10 @@ interface EvidenceFindingsCardProps {
 export function EvidenceFindingsCard({ findings = [] }: EvidenceFindingsCardProps) {
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  const displayFindings = findings.length > 0
-    ? findings
+  const safeFindings = Array.isArray(findings) ? findings : [];
+
+  const displayFindings = safeFindings.length > 0
+    ? safeFindings
     : [
         {
           source: "Connection Inspection",
@@ -36,15 +38,17 @@ export function EvidenceFindingsCard({ findings = [] }: EvidenceFindingsCardProp
 
       <div className="card-body-cg">
         {displayFindings.map((f, idx) => {
-          const isCritical = f.severity === "CRITICAL" || f.severity === "HIGH";
-          const isModerate = f.severity === "MEDIUM" || f.severity === "MODERATE";
+          const sev = String(f.severity || "INFO").toUpperCase();
+          const isCritical = sev === "CRITICAL" || sev === "HIGH";
+          const isModerate = sev === "MEDIUM" || sev === "MODERATE";
           const iconColor = isCritical ? "#ff7777" : isModerate ? "#ffb52e" : "#50e3a4";
           const isExpanded = expandedIndex === idx;
+          const findingKey = `evidence-finding-${idx}-${String(f.finding || "").slice(0, 15)}`;
 
           return (
             <div 
               className="finding-cg" 
-              key={idx}
+              key={findingKey}
               style={{ cursor: f.evidence ? "pointer" : "default" }}
               onClick={() => f.evidence && setExpandedIndex(isExpanded ? null : idx)}
             >
@@ -57,10 +61,10 @@ export function EvidenceFindingsCard({ findings = [] }: EvidenceFindingsCardProp
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-                  <h4>{f.finding}</h4>
+                  <h4>{String(f.finding || "Security Finding")}</h4>
                   <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span className={`badge-cg ${isCritical ? "red" : isModerate ? "amber" : "blue"}`}>
-                      {f.severity}
+                      {sev}
                     </span>
                     {f.evidence && (
                       <span style={{ color: "var(--muted)" }}>
@@ -69,7 +73,7 @@ export function EvidenceFindingsCard({ findings = [] }: EvidenceFindingsCardProp
                     )}
                   </div>
                 </div>
-                <p>{f.explanation}</p>
+                <p>{String(f.explanation || "No additional explanation provided.")}</p>
 
                 {isExpanded && f.evidence && (
                   <div style={{ marginTop: 8, padding: "8px 12px", background: "var(--panel-2)", borderRadius: 7, border: "1px solid var(--line)" }}>

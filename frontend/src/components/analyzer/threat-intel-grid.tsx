@@ -193,7 +193,7 @@ export function ThreatIntelGrid({ analysis }: ThreatIntelGridProps) {
             {!analysis.sslAnalysis || !analysis.sslAnalysis.available
               ? (analysis.sslAnalysis?.error || "Connection unavailable")
               : analysis.sslAnalysis.issuer
-              ? `${analysis.sslAnalysis.issuer}${analysis.sslAnalysis.validDaysRemaining !== undefined ? ` • ${analysis.sslAnalysis.validDaysRemaining}d left` : ""}`
+              ? `${typeof analysis.sslAnalysis.issuer === "object" ? String((analysis.sslAnalysis.issuer as any)?.O || (analysis.sslAnalysis.issuer as any)?.CN || "Unknown CA") : String(analysis.sslAnalysis.issuer)}${analysis.sslAnalysis.validDaysRemaining !== undefined ? ` • ${analysis.sslAnalysis.validDaysRemaining}d left` : ""}`
               : analysis.sslAnalysis.explanation || "Analyzed"}
           </p>
         </CardContent>

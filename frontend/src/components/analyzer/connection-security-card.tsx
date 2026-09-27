@@ -4,9 +4,9 @@ import React from "react";
 import { Lock, AlertTriangle, ShieldCheck } from "lucide-react";
 
 interface ConnectionSecurityCardProps {
-  ssl: {
+  ssl?: {
     valid: boolean;
-    issuer: string;
+    issuer: string | unknown;
     validDaysRemaining: number;
     status?: string;
   };
@@ -17,7 +17,7 @@ interface ConnectionSecurityCardProps {
     score: number | null;
     riskLevel: string;
     status: string;
-    issuer?: string;
+    issuer?: string | unknown;
     validDaysRemaining?: number;
     hostnameMatch?: boolean;
     authorized?: boolean;
@@ -27,30 +27,63 @@ interface ConnectionSecurityCardProps {
   };
 }
 
+export function formatIssuerDisplay(raw: unknown): string {
+  if (!raw) return "Unknown CA";
+  if (typeof raw === "string") return raw.trim() || "Unknown CA";
+  if (typeof raw === "object") {
+    const obj = raw as Record<string, unknown>;
+    const org = obj.O || obj.organization;
+    const cn = obj.CN || obj.commonName;
+    const c = obj.C || obj.country;
+    if (org && cn) return `${String(org)} (${String(cn)})`;
+    if (org) return String(org);
+    if (cn) return String(cn);
+    if (c) return `Certificate Authority (${String(c)})`;
+    try {
+      const parts = Object.entries(obj)
+        .filter(([, v]) => typeof v === "string" && v.length > 0)
+        .map(([k, v]) => `${k}=${v}`);
+      if (parts.length > 0) return parts.slice(0, 2).join(", ");
+    } catch {
+      // fallback
+    }
+  }
+  return String(raw);
+}
+
 export function ConnectionSecurityCard({ ssl, sslAnalysis }: ConnectionSecurityCardProps) {
-  const isHttps = sslAnalysis?.protocol?.toUpperCase().includes("HTTPS") || ssl.valid;
-  const protocol = sslAnalysis?.protocol || (ssl.valid ? "HTTPS" : "HTTP");
-  const isHttp = protocol.toUpperCase() === "HTTP";
+  const safeSsl = ssl || {
+    valid: false,
+    issuer: "Unknown CA",
+    validDaysRemaining: 0,
+    status: "UNKNOWN"
+  };
+
+  const protocolStr = (sslAnalysis?.protocol || (safeSsl.valid ? "HTTPS" : "HTTP")).toUpperCase();
+  const isHttps = protocolStr.includes("HTTPS") || safeSsl.valid;
+  const isHttp = protocolStr === "HTTP" && !safeSsl.valid;
+
+  const issuerDisplay = formatIssuerDisplay(safeSsl.issuer || sslAnalysis?.issuer);
 
   const rows = [
     {
       label: "Protocol",
-      value: protocol,
+      value: protocolStr || (isHttps ? "HTTPS" : "HTTP"),
       status: isHttp ? "UNENCRYPTED" : "ENCRYPTED"
     },
     {
       label: "TLS Encryption",
-      value: isHttp ? "Not available" : (sslAnalysis?.available ? "Active (TLS 1.2/1.3)" : "Not available"),
+      value: isHttp ? "Not available" : (sslAnalysis?.available ? "Active (TLS 1.2/1.3)" : isHttps ? "Active (TLS)" : "Not available"),
       status: isHttp ? "—" : "ACTIVE"
     },
     {
       label: "Certificate",
-      value: isHttp ? "Not available" : (ssl.issuer || (ssl.valid ? "Verified Authority" : "Invalid")),
-      status: ssl.valid ? "VALID" : "—"
+      value: isHttp ? "Not available" : (issuerDisplay || (safeSsl.valid ? "Verified Authority" : "Invalid")),
+      status: safeSsl.valid ? "VALID" : isHttp ? "—" : "UNVERIFIED"
     },
     {
       label: "Hostname Match",
-      value: isHttp ? "Not available" : (sslAnalysis?.hostnameMatch !== undefined ? (sslAnalysis.hostnameMatch ? "Matched" : "Mismatch") : (ssl.valid ? "Matched" : "—")),
+      value: isHttp ? "Not available" : (sslAnalysis?.hostnameMatch !== undefined ? (sslAnalysis.hostnameMatch ? "Matched" : "Mismatch") : (safeSsl.valid ? "Matched" : "—")),
       status: sslAnalysis?.hostnameMatch ? "VALID" : "—"
     },
   ];
@@ -74,7 +107,7 @@ export function ConnectionSecurityCard({ ssl, sslAnalysis }: ConnectionSecurityC
             <div style={{ flex: 1, display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 10 }}>
               <span style={{ color: "var(--muted)" }}>{row.label}</span>
               <strong style={{ color: row.status === "UNENCRYPTED" ? "#ff7777" : "var(--text)" }}>
-                {row.value}
+                {typeof row.value === "string" ? row.value : String(row.value || "")}
               </strong>
             </div>
           </div>

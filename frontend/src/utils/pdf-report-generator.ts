@@ -130,7 +130,7 @@ export function generatePdfReport(data: PdfScanData) {
           <div><span class="label">SSL / Encryption:</span> <span class="value">${
             data.sslAnalysis
               ? `${data.sslAnalysis.certificateStatus || (data.ssl?.valid ? "VALID" : "UNTRUSTED")} (${data.sslAnalysis.protocol || (data.ssl?.valid ? "HTTPS" : "HTTP")})`
-              : data.ssl ? (data.ssl.valid ? "✓ Valid HTTPS" : "⚠️ Plain HTTP / Untrusted") + ` (${data.ssl.issuer || "None"})` : "Not Evaluated"
+              : data.ssl ? (data.ssl.valid ? "✓ Valid HTTPS" : "⚠️ Plain HTTP / Untrusted") + ` (${typeof data.ssl.issuer === "object" ? String((data.ssl.issuer as any)?.O || (data.ssl.issuer as any)?.CN || "Unknown CA") : String(data.ssl.issuer || "None")})` : "Not Evaluated"
           }</span></div>
           <div><span class="label">URL Intelligence:</span> <span class="value">${
             data.urlIntelligence
