@@ -4,10 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight, AlertCircle, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/auth-context";
+import { AuthInput } from "@/components/auth/auth-input";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -37,92 +35,84 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-md space-y-6 font-mono">
+    <div className="w-full max-w-md space-y-6">
       {/* Brand Header */}
       <div className="text-center">
-        <div className="inline-flex items-center justify-center p-3 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl mb-3 border border-emerald-500/30">
+        <div className="inline-flex items-center justify-center p-3 bg-blue-500/10 text-[var(--blue)] rounded-xl mb-3 border border-blue-500/20">
           <Shield className="w-7 h-7" />
         </div>
-        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
           CYBERGUARD AI
         </h1>
-        <p className="text-xs text-slate-500 mt-1 font-sans">
+        <p className="text-xs text-[var(--muted)] mt-1.5">
           SOC Cyber Crime Assistance & Threat Intelligence Platform
         </p>
       </div>
 
       {/* Login Card */}
-      <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm">
-        <CardHeader className="py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
-          <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
-            Analyst Authentication
-          </CardTitle>
-          <CardDescription className="text-xs text-slate-500 dark:text-slate-400 font-sans">
-            Enter your credentials to access the security analysis console.
-          </CardDescription>
-        </CardHeader>
+      <div className="card-cg" style={{ padding: 0 }}>
+        <div className="card-head-cg">
+          <div>
+            <h3 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text)" }}>
+              Analyst Authentication
+            </h3>
+            <p style={{ fontSize: 11, color: "var(--muted)", margin: "4px 0 0" }}>
+              Enter credentials to access the security analysis console.
+            </p>
+          </div>
+        </div>
 
-        <CardContent className="p-6">
+        <div className="card-body-cg" style={{ padding: "24px" }}>
           {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-lg flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+            <div className="notice-cg" style={{ borderColor: "rgba(239,68,68,0.3)", color: "var(--red)", background: "rgba(239,68,68,0.08)", marginBottom: 18 }}>
+              <AlertCircle size={14} style={{ verticalAlign: "middle", marginRight: 7 }} />
               <span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 font-sans">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <Input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="analyst@cyberguard.ai"
-                  className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10 text-xs font-mono rounded-lg focus:ring-emerald-500"
-                />
-              </div>
-            </div>
+            <AuthInput
+              label="Work Email Address"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="analyst@cyberguard.ai"
+              icon={<Mail size={15} />}
+            />
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 font-sans">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <Input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10 text-xs font-mono rounded-lg focus:ring-emerald-500"
-                />
-              </div>
-            </div>
+            <AuthInput
+              label="Master Password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              icon={<Lock size={15} />}
+              showPasswordToggle
+            />
 
-            <Button
+            <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-10 rounded-lg font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+              className="btn-cg primary w-full justify-center"
+              style={{ height: 44, fontSize: 12, fontWeight: 700, marginTop: 12, borderRadius: 8 }}
             >
               {isLoading ? "Authenticating..." : "Sign In to Console"}
-              <ArrowRight className="w-4 h-4" />
-            </Button>
+              <ArrowRight size={14} />
+            </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 font-sans">
+          <div className="mt-6 pt-4 border-t border-[var(--line)] text-center text-xs text-[var(--muted)]">
             Need an analyst account?{" "}
-            <Link href="/register" className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
+            <Link href="/register" className="font-bold text-[var(--blue)] hover:underline">
               Register Credentials
             </Link>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

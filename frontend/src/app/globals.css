@@ -41,41 +41,7 @@
 }
 
 :root {
-  /* LIGHT MODE PALETTE */
-  --bg: #F4F7FB;
-  --panel: #FFFFFF;
-  --panel-2: #F8FAFC;
-  --line: #DBE3EE;
-  --muted: #61728A;
-  --text: #172338;
-  --blue: #2563EB;
-  --green: #059669;
-  --amber: #D97706;
-  --red: #DC2626;
-  --purple: #7C3AED;
-
-  --sidebar-bg: #FFFFFF;
-  --card-gradient: linear-gradient(180deg, #FFFFFF, #F8FAFC);
-  --ai-panel-bg: linear-gradient(145deg, rgba(124,58,237,.06), #FFFFFF);
-  --ai-summary-bg: rgba(124,58,237,.08);
-  --nav-active-bg: linear-gradient(90deg, rgba(37,99,235,.15), rgba(37,99,235,.05));
-  --nav-hover: #F1F5F9;
-
-  --background: var(--bg);
-  --foreground: var(--text);
-  --card: var(--panel);
-  --card-foreground: var(--text);
-  --card-elevated: var(--panel-2);
-  --border: var(--line);
-  --primary-blue: var(--blue);
-  --success: var(--green);
-  --warning: var(--amber);
-  --danger: var(--red);
-  --ai-purple: var(--purple);
-}
-
-.dark {
-  /* DARK MODE - DEFAULT SOC PALETTE */
+  /* DARK MODE - DEFAULT SOC PALETTE (Requirement 7) */
   --bg: #07101f;
   --panel: #0b1729;
   --panel-2: #0e1d32;
@@ -95,6 +61,11 @@
   --nav-active-bg: linear-gradient(90deg, rgba(46,103,255,.35), rgba(46,103,255,.12));
   --nav-hover: #101f35;
 
+  --input-bg: #091426;
+  --input-color: #EDF4FF;
+  --input-placeholder: #7185A1;
+  --input-border: #1b2b42;
+
   --background: var(--bg);
   --foreground: var(--text);
   --card: var(--panel);
@@ -108,18 +79,336 @@
   --ai-purple: var(--purple);
 }
 
+html.light, .light {
+  /* LIGHT MODE PALETTE (Requirement 7) */
+  --bg: #F4F7FB;
+  --panel: #FFFFFF;
+  --panel-2: #F8FAFC;
+  --line: #DBE3EE;
+  --muted: #61728A;
+  --text: #172338;
+  --blue: #2563EB;
+  --green: #059669;
+  --amber: #D97706;
+  --red: #DC2626;
+  --purple: #7C3AED;
+
+  --sidebar-bg: #FFFFFF;
+  --card-gradient: linear-gradient(180deg, #FFFFFF, #F8FAFC);
+  --ai-panel-bg: linear-gradient(145deg, rgba(124,58,237,.06), #FFFFFF);
+  --ai-summary-bg: rgba(124,58,237,.08);
+  --nav-active-bg: linear-gradient(90deg, rgba(37,99,235,.15), rgba(37,99,235,.05));
+  --nav-hover: #F1F5F9;
+
+  --input-bg: #ffffff;
+  --input-color: #172338;
+  --input-placeholder: #8A9AB0;
+  --input-border: #DBE3EE;
+
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --card-elevated: var(--panel-2);
+  --border: var(--line);
+  --primary-blue: var(--blue);
+  --success: var(--green);
+  --warning: var(--amber);
+  --danger: var(--red);
+  --ai-purple: var(--purple);
+}
+
+html.dark, .dark {
+  /* EXPLICIT DARK MODE (matches :root) */
+  --bg: #07101f;
+  --panel: #0b1729;
+  --panel-2: #0e1d32;
+  --line: #1b2b42;
+  --muted: #8fa2bd;
+  --text: #edf4ff;
+  --blue: #3478ff;
+  --green: #16c784;
+  --amber: #f5a524;
+  --red: #ef4444;
+  --purple: #9b6cff;
+
+  --sidebar-bg: rgba(6,15,29,.96);
+  --card-gradient: linear-gradient(180deg, rgba(14,29,50,.92), rgba(9,21,36,.92));
+  --ai-panel-bg: linear-gradient(145deg, rgba(52,29,104,.3), rgba(12,22,41,.92));
+  --ai-summary-bg: rgba(119,75,220,.12);
+  --nav-active-bg: linear-gradient(90deg, rgba(46,103,255,.35), rgba(46,103,255,.12));
+  --nav-hover: #101f35;
+
+  --input-bg: #091426;
+  --input-color: #EDF4FF;
+  --input-placeholder: #7185A1;
+  --input-border: #1b2b42;
+}
+
 * { box-sizing: border-box; }
 html, body { margin:0; padding:0; min-height:100%; }
 body { 
   background: radial-gradient(circle at 80% -20%, rgba(44,105,255,.12), transparent 35%), var(--bg); 
   color: var(--text); 
-  font-family: Inter, system-ui, sans-serif;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   transition: background-color 0.2s ease, color 0.2s ease;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
-button, input { font: inherit; }
+
+/* FONT INHERITANCE (Requirement 6) */
+input,
+button,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
 button { cursor: pointer; }
 a { color: inherit; text-decoration: none; }
+
+/* ============================================================================
+   CROSS-BROWSER THEME-AWARE INPUTS (Requirements 2, 4, 5)
+   ============================================================================ */
+
+/* Normalize & remove native quirks */
+input,
+textarea,
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Hide Microsoft Edge / IE native reveal/clear buttons */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="text"]::-ms-clear {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* DEFAULT / DARK MODE (Requirement 2) */
+input,
+textarea,
+select {
+  color: #EDF4FF;
+  background-color: #091426;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #7185A1;
+  opacity: 1;
+}
+
+/* LIGHT MODE (Requirement 2) */
+html.light input,
+html.light textarea,
+html.light select,
+.light input,
+.light textarea,
+.light select {
+  color: #172338;
+  background-color: #ffffff;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder,
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #8A9AB0;
+  opacity: 1;
+}
+
+/* ============================================================================
+   CROSS-BROWSER AUTOFILL SUPPORT (Requirement 3)
+   Chrome, Edge, Safari, mobile Safari, Firefox
+   ============================================================================ */
+
+/* Dark Mode WebKit Autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-text-fill-color: #EDF4FF !important;
+  -webkit-box-shadow: 0 0 0 1000px #091426 inset !important;
+  box-shadow: 0 0 0 1000px #091426 inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  caret-color: #EDF4FF !important;
+  font-family: inherit !important;
+}
+
+/* Light Mode WebKit Autofill */
+html.light input:-webkit-autofill,
+html.light input:-webkit-autofill:hover,
+html.light input:-webkit-autofill:focus,
+html.light input:-webkit-autofill:active,
+html.light textarea:-webkit-autofill,
+html.light textarea:-webkit-autofill:hover,
+html.light textarea:-webkit-autofill:focus,
+html.light textarea:-webkit-autofill:active,
+html.light select:-webkit-autofill,
+html.light select:-webkit-autofill:hover,
+html.light select:-webkit-autofill:focus,
+html.light select:-webkit-autofill:active,
+.light input:-webkit-autofill,
+.light input:-webkit-autofill:hover,
+.light input:-webkit-autofill:focus,
+.light input:-webkit-autofill:active,
+.light textarea:-webkit-autofill,
+.light textarea:-webkit-autofill:hover,
+.light textarea:-webkit-autofill:focus,
+.light textarea:-webkit-autofill:active,
+.light select:-webkit-autofill,
+.light select:-webkit-autofill:hover,
+.light select:-webkit-autofill:focus,
+.light select:-webkit-autofill:active {
+  -webkit-text-fill-color: #172338 !important;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  box-shadow: 0 0 0 1000px #ffffff inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  caret-color: #172338 !important;
+  font-family: inherit !important;
+}
+
+/* Firefox Autofill Normalization */
+input:-moz-autofill,
+input:-moz-autofill-preview {
+  filter: none !important;
+  color: #EDF4FF !important;
+  background-color: #091426 !important;
+}
+
+html.light input:-moz-autofill,
+html.light input:-moz-autofill-preview,
+.light input:-moz-autofill,
+.light input:-moz-autofill-preview {
+  filter: none !important;
+  color: #172338 !important;
+  background-color: #ffffff !important;
+}
+
+/* ============================================================================
+   REUSABLE AUTH INPUT COMPONENT STYLES (Requirements 11, 12)
+   Explicit, high-specificity styles to prevent generic utility conflicts
+   ============================================================================ */
+.auth-input-group {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-input-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text);
+  font-family: inherit;
+  letter-spacing: 0.01em;
+}
+
+.auth-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.auth-input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--muted);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.auth-input-element {
+  width: 100%;
+  height: 42px;
+  border-radius: 8px;
+  border: 1px solid var(--input-border);
+  background-color: var(--input-bg);
+  color: var(--input-color);
+  padding: 0 14px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.auth-input-element.has-icon {
+  padding-left: 38px;
+}
+
+.auth-input-element.has-toggle {
+  padding-right: 40px;
+}
+
+.auth-input-element:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(52, 120, 255, 0.22);
+}
+
+html.light .auth-input-element:focus,
+.light .auth-input-element:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.auth-input-element.is-invalid {
+  border-color: var(--red);
+}
+
+.auth-input-element.is-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.auth-input-toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  border-radius: 6px;
+  transition: color 0.15s ease;
+}
+
+.auth-input-toggle:hover {
+  color: var(--text);
+}
+
+.auth-input-error {
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
 
 /* CYBERGUARD AI CORE UI DESIGN SYSTEM CLASSES */
 .app-cg { min-height: 100vh; display: flex; }

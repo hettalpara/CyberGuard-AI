@@ -26,6 +26,10 @@ export function ThemeProvider({
       enableSystem={false}
       disableTransitionOnChange={false}
       storageKey={storageKey}
+      value={{
+        light: "light",
+        dark: "dark",
+      }}
     >
       {children}
     </NextThemesProvider>
