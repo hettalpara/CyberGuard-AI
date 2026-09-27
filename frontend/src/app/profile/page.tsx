@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { User as UserIcon, Mail, Shield, Key, LogOut, CheckCircle2, AlertCircle, Save } from "lucide-react";
+import { User as UserIcon, Mail, Shield, Key, LogOut, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

@@ -5,14 +5,7 @@ import Link from "next/link";
 import { 
   Save, 
   CheckCircle2, 
-  Settings as SettingsIcon,
-  Palette,
-  Bell,
-  ShieldCheck,
-  User as UserIcon,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp
+  ExternalLink
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";

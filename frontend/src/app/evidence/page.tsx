@@ -9,12 +9,9 @@ import {
   Copy, 
   Check, 
   ShieldCheck, 
-  FileText, 
   Download, 
-  ExternalLink,
-  Lock,
-  RefreshCw,
-  AlertCircle
+  Lock, 
+  RefreshCw 
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

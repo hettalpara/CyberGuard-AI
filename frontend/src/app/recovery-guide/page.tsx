@@ -7,10 +7,8 @@ import {
   KeyRound, 
   RefreshCw, 
   MonitorCheck, 
-  ExternalLink, 
   PhoneCall, 
   AlertTriangle,
-  FileCheck2,
   Lock,
   Smartphone
 } from "lucide-react";

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Bot, Sparkles, AlertCircle, ArrowRight } from "lucide-react";
+import { Bot } from "lucide-react";
 import type { AIAnalysisData } from "@/services/analyzer.service";
 
 interface AiAssessmentCardProps {

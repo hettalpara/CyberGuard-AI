@@ -7,15 +7,13 @@ import {
   Download, 
   Copy, 
   Check, 
-  Zap, 
   AlertCircle, 
   Globe, 
   Mail, 
-  RefreshCw,
-  FileText,
-  Bot,
-  ShieldCheck,
-  ArrowRight
+  RefreshCw, 
+  FileText, 
+  Bot, 
+  ArrowRight 
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
@@ -24,8 +22,6 @@ import { generatePdfReport } from "@/utils/pdf-report-generator";
 import { analyzerService } from "@/services/analyzer.service";
 import type { RiskFactorData, AIAnalysisData, SecurityFindingData } from "@/services/analyzer.service";
 import { 
-  ScanProgress, 
-  type ScanState,
   EmailAnalyzerSection,
   RiskSummarySection,
   ThreatIntelligenceCard,
@@ -127,23 +123,9 @@ export default function AnalyzerPage() {
   const [inputUrl, setInputUrl] = useState("http://xn--paypa1-9za.example/login");
   const [activeMode, setActiveMode] = useState<"url" | "email">("url");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [scanState, setScanState] = useState<ScanState>("IDLE");
   const [analysis, setAnalysis] = useState<DetailedAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const urlParam = params.get("url");
-      if (urlParam) {
-        setInputUrl(urlParam);
-        setTimeout(() => {
-          handleAnalyze(urlParam);
-        }, 100);
-      }
-    }
-  }, []);
 
   const handleAnalyze = async (overrideUrl?: string) => {
     const targetUrl = (overrideUrl || inputUrl).trim();
@@ -154,11 +136,9 @@ export default function AnalyzerPage() {
 
     setIsAnalyzing(true);
     setError(null);
-    setScanState("VALIDATING");
 
     try {
       await new Promise((resolve) => setTimeout(resolve, 400));
-      setScanState("SCANNING");
 
       const response = await analyzerService.scanUrl({ url: targetUrl });
       const data = response.data;
@@ -284,19 +264,31 @@ export default function AnalyzerPage() {
           scanId: scan.id || (scan as any)._id || (scan as any).scanId,
         };
 
-        setScanState("COMPLETED");
         setAnalysis(result);
       } else {
         throw new Error(data?.message || "Scan returned unsuccessful response.");
       }
     } catch (err: any) {
-      setScanState("FAILED");
       const msg = err?.response?.data?.message || err?.message || "URL analysis failed. Please try again.";
       setError(msg);
     } finally {
       setIsAnalyzing(false);
     }
   };
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const urlParam = params.get("url");
+      if (urlParam) {
+        setInputUrl(urlParam);
+        setTimeout(() => {
+          handleAnalyze(urlParam);
+        }, 100);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleDownloadPdf = () => {
     if (analysis) {

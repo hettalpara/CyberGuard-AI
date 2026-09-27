@@ -3,7 +3,6 @@
 import React from "react";
 import { ShieldAlert, X } from "lucide-react";
 import { RiskBadge, normalizeRiskLevel } from "@/components/common/risk-badge";
-import { RiskMeter } from "@/components/common/risk-meter";
 
 export interface ScanContextState {
   scanId: string;

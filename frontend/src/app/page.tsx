@@ -3,19 +3,14 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { 
-  ShieldCheck, 
   Search, 
   Cpu, 
   FileText, 
   ArrowRight, 
   CheckCircle2, 
-  BookOpen,
-  Zap,
-  Lock,
-  Shield,
-  Activity,
-  Fingerprint,
-  Scale
+  Zap, 
+  Shield, 
+  Fingerprint 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";

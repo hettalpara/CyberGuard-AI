@@ -3,15 +3,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { 
-  FileText, 
   Download, 
-  Trash2, 
   Eye, 
-  Plus, 
   AlertCircle, 
   RefreshCw, 
-  Search,
-  ExternalLink
+  Search
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
@@ -172,6 +168,9 @@ export default function ReportsPage() {
                             </td>
                             <td>
                               <span className="badge-cg blue">{r.status || "FINAL"}</span>
+                            </td>
+                            <td style={{ fontSize: 11, color: "var(--muted)" }}>
+                              {dateStr}
                             </td>
                             <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                               <div style={{ display: "inline-flex", gap: 6 }}>

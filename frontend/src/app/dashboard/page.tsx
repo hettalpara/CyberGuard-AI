@@ -145,7 +145,7 @@ export default function DashboardPage() {
                 <div style={{ overflowX: "auto" }}>
                   {recentScans.length === 0 ? (
                     <div style={{ padding: 24, textAlign: "center", color: "var(--muted)", fontSize: 11 }}>
-                      No recent scans recorded. Click "New URL Scan" to begin.
+                      No recent scans recorded. Click &quot;New URL Scan&quot; to begin.
                     </div>
                   ) : (
                     <table className="table-cg">

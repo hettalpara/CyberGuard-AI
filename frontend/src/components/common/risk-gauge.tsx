@@ -9,7 +9,7 @@ interface RiskGaugeProps {
   className?: string;
 }
 
-export function RiskGauge({ score, level, className }: RiskGaugeProps) {
+export function RiskGauge({ score, className }: RiskGaugeProps) {
   const isAvailable = score !== null && !isNaN(score);
   const clampedScore = isAvailable ? Math.min(100, Math.max(0, score)) : 0;
 

@@ -3,13 +3,10 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { 
-  Scale, 
   AlertTriangle, 
   ShieldAlert, 
   FileCheck2, 
   PhoneCall, 
-  ExternalLink, 
-  BookOpen, 
   ChevronDown,
   ChevronUp,
   Search

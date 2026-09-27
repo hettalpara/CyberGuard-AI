@@ -6,7 +6,6 @@ import {
   Bot, 
   Send, 
   RotateCcw, 
-  AlertTriangle,
   RefreshCw
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -35,7 +34,6 @@ export default function AiAssistantPage() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [activeScan, setActiveScan] = useState<ScanContextState | null>(null);
-  const [statusNotice, setStatusNotice] = useState<string | null>(null);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,7 +84,6 @@ export default function AiAssistantPage() {
     setMessages((prev) => [...prev, userMsg]);
     if (!customPrompt) setInput("");
     setIsTyping(true);
-    setStatusNotice(null);
 
     try {
       const res = await assistantService.sendMessage({

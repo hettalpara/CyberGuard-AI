@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, ShieldAlert, AlertTriangle, AlertCircle, HelpCircle } from "lucide-react";
+import { ShieldCheck, ShieldAlert } from "lucide-react";
 
 export interface ThreatIntelligenceCardProps {
   safeBrowsing: {

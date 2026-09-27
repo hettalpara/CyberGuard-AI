@@ -17,7 +17,7 @@ interface UrlStructureCardProps {
   findings?: SecurityFindingData[];
 }
 
-export function UrlStructureCard({ intelligence, findings = [] }: UrlStructureCardProps) {
+export function UrlStructureCard({ findings = [] }: UrlStructureCardProps) {
   const structureFindings = findings.filter(
     (f) =>
       f.source === "LOCAL_HEURISTICS" ||

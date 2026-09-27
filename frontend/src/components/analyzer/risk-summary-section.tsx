@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Shield, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { normalizeRiskLevel } from "@/components/common/risk-badge";
 import { RiskGauge } from "@/components/common/risk-gauge";
 import type { RiskFactorData } from "@/services/analyzer.service";
