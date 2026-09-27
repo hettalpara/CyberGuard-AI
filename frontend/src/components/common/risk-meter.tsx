@@ -2,44 +2,69 @@
 
 import React from "react";
 import { cn } from "@/lib/utils";
+import { RiskBadge, normalizeRiskLevel } from "./risk-badge";
 
 interface RiskMeterProps {
   score: number | null;
-  threatLevel?: "SAFE" | "LOW" | "MODERATE" | "MEDIUM" | "HIGH" | "CRITICAL" | "INCONCLUSIVE" | string;
+  threatLevel?: string;
   size?: "sm" | "md" | "lg";
+  className?: string;
+  showBadge?: boolean;
 }
 
-export function RiskMeter({ score, threatLevel = "SAFE", size = "md" }: RiskMeterProps) {
-  const getBadgeStyle = () => {
-    if (score === null || threatLevel === "INCONCLUSIVE") return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
-    if (score >= 80 || threatLevel === "CRITICAL") return "bg-red-100 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900";
-    if (score >= 50 || threatLevel === "HIGH") return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900";
-    if (score >= 20 || threatLevel === "MEDIUM" || threatLevel === "MODERATE" || threatLevel === "LOW") return "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-400 dark:border-yellow-900";
-    return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900";
-  };
+export function RiskMeter({
+  score,
+  threatLevel = "SAFE",
+  size = "md",
+  className,
+  showBadge = true,
+}: RiskMeterProps) {
+  const normLevel = normalizeRiskLevel(threatLevel);
 
   const getBarColor = () => {
-    if (score === null || threatLevel === "INCONCLUSIVE") return "bg-slate-400";
-    if (score >= 80) return "bg-red-500";
-    if (score >= 50) return "bg-amber-500";
-    if (score >= 20) return "bg-yellow-500";
+    if (score === null || normLevel === "INCONCLUSIVE") return "bg-slate-400";
+    if (score >= 80 || normLevel === "CRITICAL") return "bg-red-700";
+    if (score >= 60 || normLevel === "HIGH") return "bg-red-500";
+    if (score >= 40 || normLevel === "MODERATE") return "bg-orange-500";
+    if (score >= 20 || normLevel === "LOW") return "bg-amber-400";
     return "bg-emerald-500";
   };
 
-  const dimensions = size === "sm" ? "h-2 w-24" : size === "lg" ? "h-4 w-48" : "h-3 w-36";
+  const dimensions =
+    size === "sm"
+      ? "h-1.5 w-20"
+      : size === "lg"
+      ? "h-3 w-40"
+      : "h-2 w-28";
+
+  const clampedScore = score !== null ? Math.min(100, Math.max(0, score)) : 0;
 
   return (
-    <div className="flex items-center gap-3">
-      <div className={cn("w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700", dimensions)}>
+    <div className={cn("inline-flex items-center gap-2.5", className)}>
+      <div
+        className={cn(
+          "bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden shrink-0",
+          dimensions
+        )}
+      >
         <div
           className={cn("h-full transition-all duration-500 rounded-full", getBarColor())}
-          style={{ width: `${score !== null ? Math.min(100, Math.max(0, score)) : 0}%` }}
+          style={{ width: `${score !== null ? clampedScore : 0}%` }}
         />
       </div>
-      <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-md border", getBadgeStyle())}>
-        {score !== null ? `${score}/100 Risk` : "Inconclusive"}
-      </span>
+
+      {showBadge && (
+        <RiskBadge level={normLevel} size={size === "lg" ? "md" : "sm"} />
+      )}
+
+      {score !== null ? (
+        <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">
+          {score}
+          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">/100</span>
+        </span>
+      ) : (
+        <span className="text-[11px] font-mono text-slate-600 dark:text-slate-400">N/A</span>
+      )}
     </div>
   );
 }
-

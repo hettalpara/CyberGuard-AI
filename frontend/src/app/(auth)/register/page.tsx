@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,7 @@ export default function RegisterPage() {
         password,
       });
 
-      setSuccess("Account created successfully! Redirecting to sign in...");
+      setSuccess("Analyst account registered successfully. Redirecting to sign in...");
       setTimeout(() => {
         router.push("/login");
       }, 1200);
@@ -52,7 +52,7 @@ export default function RegisterPage() {
       const errorMessage =
         err?.response?.data?.message ||
         err?.message ||
-        "Registration failed. Please try again.";
+        "Registration failed. Please check inputs and try again.";
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -60,117 +60,133 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center px-4 font-sans">
-      <div className="w-full max-w-md space-y-6">
-        {/* Brand Header */}
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center p-3 bg-[#10B981] text-white rounded-2xl mb-3">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-extrabold text-[#1F2937]">CyberGuard AI</h1>
-          <p className="text-xs text-slate-500 mt-1">Register for Smart Phishing URL Analyzer Access</p>
+    <div className="w-full max-w-md space-y-6 font-mono">
+      {/* Brand Header */}
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center p-3 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl mb-3 border border-emerald-500/30">
+          <Shield className="w-7 h-7" />
         </div>
-
-        {/* Register Card */}
-        <Card className="border-[#E5E7EB] bg-white shadow-sm p-2">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base font-bold text-[#1F2937]">Create New Account</CardTitle>
-            <CardDescription className="text-xs text-slate-500">Enter your details to create an analyst account.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                <span>{success}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <Input
-                    type="text"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Virani Pritkumar"
-                    className="pl-9 bg-slate-50 border-[#E5E7EB] h-10 text-xs rounded-xl focus:ring-[#10B981]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <Input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="prit.virani@depstar.ac.in"
-                    className="pl-9 bg-slate-50 border-[#E5E7EB] h-10 text-xs rounded-xl focus:ring-[#10B981]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <Input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pl-9 bg-slate-50 border-[#E5E7EB] h-10 text-xs rounded-xl focus:ring-[#10B981]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Confirm Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                  <Input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pl-9 bg-slate-50 border-[#E5E7EB] h-10 text-xs rounded-xl focus:ring-[#10B981]"
-                  />
-                </div>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-[#10B981] hover:bg-[#059669] text-white text-xs h-10 rounded-xl font-semibold flex items-center justify-center gap-2 cursor-pointer"
-              >
-                {isLoading ? "Creating Account..." : "Register Account"} <ArrowRight className="w-4 h-4" />
-              </Button>
-            </form>
-
-            <div className="mt-6 pt-4 border-t border-[#E5E7EB] text-center text-xs text-slate-500">
-              Already have an account?{" "}
-              <Link href="/login" className="font-bold text-[#10B981] hover:underline">
-                Sign In
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          CYBERGUARD AI
+        </h1>
+        <p className="text-xs text-slate-500 mt-1 font-sans">
+          Register New SOC Security Analyst Profile
+        </p>
       </div>
+
+      {/* Register Card */}
+      <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm">
+        <CardHeader className="py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
+          <CardTitle className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+            Create Analyst Credentials
+          </CardTitle>
+          <CardDescription className="text-xs text-slate-500 dark:text-slate-400 font-sans">
+            Provision access to URL threat analyzers, forensic reports, and AI assistant.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs rounded-lg flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
+              <span>{success}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 font-sans">
+                Full Name
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Input
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Security Analyst"
+                  className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10 text-xs font-mono rounded-lg focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 font-sans">
+                Work Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="analyst@cyberguard.ai"
+                  className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10 text-xs font-mono rounded-lg focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 font-sans">
+                Master Password (8+ characters)
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10 text-xs font-mono rounded-lg focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 font-sans">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <Input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10 text-xs font-mono rounded-lg focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-10 rounded-lg font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+            >
+              {isLoading ? "Provisioning Profile..." : "Register Analyst Profile"}
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 font-sans">
+            Already registered?{" "}
+            <Link href="/login" className="font-bold text-emerald-600 dark:text-emerald-400 hover:underline">
+              Sign In
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

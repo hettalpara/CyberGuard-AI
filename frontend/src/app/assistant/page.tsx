@@ -7,7 +7,9 @@ import {
   Bot, 
   RotateCcw, 
   Sparkles, 
-  AlertTriangle
+  AlertTriangle,
+  ShieldCheck,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,10 +37,6 @@ interface AssistantChatResponse {
     threatType?: string;
   };
 }
-
-// ============================================================================
-// Assistant Page Component
-// ============================================================================
 
 export default function AiAssistantPage() {
   const [messages, setMessages] = useState<Message[]>([
@@ -79,20 +77,18 @@ export default function AiAssistantPage() {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  // Quick Action questions
   const defaultQuickActions = [
-    "Explain phishing",
-    "Check a suspicious message",
+    "Explain phishing indicators",
     "What should I do after clicking a scam link?",
-    "How do I secure my account?",
-    "How do I report cybercrime?",
-    "What should I do if I entered my password?"
+    "How do I secure a compromised account?",
+    "How do I report cybercrime to authorities?",
+    "What should I do if I entered credentials?"
   ];
 
   const scanQuickActions = [
-    "Why is this URL risky?",
-    "What should I do right now?",
-    "Explain the URL indicators",
+    "Why did this URL receive its risk score?",
+    "What immediate defensive actions should I take?",
+    "Explain the flagged indicators",
     "Is the SSL certificate trustworthy?"
   ];
 
@@ -105,7 +101,7 @@ export default function AiAssistantPage() {
       {
         id: `reset_${Date.now()}`,
         sender: "assistant",
-        text: "How can I help with your cybersecurity? Ask any question about phishing, suspicious links, account safety, or incident response.",
+        text: "How can I assist with your cybersecurity incident? Ask any question about phishing, suspicious URLs, account security, or incident response.",
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       }
     ]);
@@ -129,7 +125,6 @@ export default function AiAssistantPage() {
     setIsTyping(true);
 
     try {
-      // Build conversation history (excluding system greetings and errors)
       const history = messages
         .filter((m) => !m.isError)
         .slice(-10)
@@ -149,9 +144,8 @@ export default function AiAssistantPage() {
         rawData?.message ||
         rawData?.data?.content ||
         rawData?.content ||
-        "I have analyzed your request. Ensure MFA is enabled across your accounts and never share OTPs or passwords.";
+        "I have evaluated your request. Ensure multi-factor authentication (MFA) is enabled and never share credentials or OTP tokens.";
 
-      // Update scan context banner if backend provided fresh scan metadata
       if (rawData?.context) {
         setActiveScan((prev) => ({
           scanId: rawData.context?.scanId || prev?.scanId || "",
@@ -209,28 +203,30 @@ export default function AiAssistantPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
+      <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-[#0B0F19]">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
-          <main className="flex-1 p-3 sm:p-5 lg:p-6 max-w-4xl mx-auto w-full flex flex-col h-[calc(100vh-4rem)]">
+          <main className="flex-1 p-3 sm:p-5 lg:p-6 max-w-4xl mx-auto w-full flex flex-col h-[calc(100vh-3.5rem)]">
             
             {/* Header & Title Section */}
             <div className="mb-3 flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2.5 py-0.5 bg-emerald-100 text-[#10B981] font-bold text-[11px] rounded-md flex items-center gap-1">
+                  <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-[10px] rounded border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Defensive Cybersecurity AI
                   </span>
                   {activeScan && (
-                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-semibold text-[11px] rounded-md border border-blue-200">
+                    <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 font-mono font-bold text-[10px] rounded border border-blue-200 dark:border-blue-800">
                       Scan Context Active
                     </span>
                   )}
                 </div>
-                <h1 className="text-xl sm:text-2xl font-extrabold text-[#1F2937] tracking-tight">CyberGuard AI Assistant</h1>
+                <h1 className="text-xl sm:text-2xl font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                  CyberGuard AI Assistant
+                </h1>
                 <p className="text-slate-500 text-xs mt-0.5">
-                  Get practical guidance for cybersecurity threats, scams, suspicious links, and account security.
+                  Get practical defensive triage for phishing threats, suspicious URLs, account takeovers, and evidence preservation.
                 </p>
               </div>
 
@@ -238,11 +234,11 @@ export default function AiAssistantPage() {
                 onClick={handleClearChat}
                 variant="outline"
                 size="sm"
-                className="text-slate-600 border-[#E5E7EB] hover:bg-slate-100 text-xs h-8 px-3 rounded-xl flex items-center gap-1.5 shrink-0 cursor-pointer"
+                className="text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-mono h-8 px-3 rounded-lg flex items-center gap-1.5 shrink-0"
                 title="Start a new chat session"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">New Chat</span>
+                <span className="hidden sm:inline">New Session</span>
               </Button>
             </div>
 
@@ -256,7 +252,7 @@ export default function AiAssistantPage() {
 
             {/* Status / Rate limit alert banner */}
             {statusNotice && (
-              <div className="mb-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800">
+              <div className="mb-2 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-2 text-xs font-mono text-amber-800 dark:text-amber-300">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
                 <span>{statusNotice}</span>
               </div>
@@ -269,16 +265,16 @@ export default function AiAssistantPage() {
                   key={idx}
                   onClick={() => handleSend(q)}
                   disabled={isTyping}
-                  className="px-3 py-1.5 bg-white border border-[#E5E7EB] hover:border-[#10B981] hover:bg-emerald-50/50 rounded-lg text-left text-xs font-medium text-slate-700 transition flex items-center gap-1.5 whitespace-nowrap shrink-0 shadow-2xs group disabled:opacity-50 cursor-pointer"
+                  className="px-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-emerald-500 hover:bg-emerald-50/40 dark:hover:bg-emerald-950/30 rounded-lg text-left text-xs font-mono font-medium text-slate-700 dark:text-slate-300 transition flex items-center gap-1.5 whitespace-nowrap shrink-0 group disabled:opacity-50 cursor-pointer shadow-2xs"
                 >
                   <span>{q}</span>
-                  <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-[#10B981] shrink-0" />
+                  <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-emerald-500 shrink-0" />
                 </button>
               ))}
             </div>
 
             {/* Chat Bubble Container */}
-            <Card className="flex-1 border-[#E5E7EB] bg-white shadow-sm flex flex-col overflow-hidden rounded-2xl">
+            <Card className="flex-1 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm flex flex-col overflow-hidden rounded-xl">
               <CardContent className="flex-1 p-4 overflow-y-auto space-y-4">
                 {messages.map((msg) => (
                   <ChatMessage key={msg.id} message={msg} />
@@ -286,9 +282,9 @@ export default function AiAssistantPage() {
 
                 {/* Typing indicator */}
                 {isTyping && (
-                  <div className="flex items-center gap-2.5 text-xs text-slate-500 italic p-2 bg-emerald-50/50 rounded-xl border border-emerald-100/60 w-fit">
-                    <Bot className="w-4 h-4 text-[#10B981] animate-spin" />
-                    <span>CyberGuard AI is analyzing...</span>
+                  <div className="flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 italic p-2 bg-emerald-50/50 dark:bg-emerald-950/30 rounded-lg border border-emerald-100 dark:border-emerald-900 w-fit font-mono">
+                    <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-400 animate-spin" />
+                    <span>CyberGuard AI is synthesizing response...</span>
                   </div>
                 )}
 

@@ -7,14 +7,14 @@ import type { NavItem } from "@/types";
 
 export const MAIN_NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard" },
-  { label: "Smart URL Analyzer", href: "/analyzer" },
-  { label: "AI Assistant", href: "/assistant" },
+  { label: "URL Scanner", href: "/analyzer" },
   { label: "Reports", href: "/reports" },
   { label: "Scan History", href: "/history" },
+  { label: "AI Assistant", href: "/assistant" },
   { label: "Recovery Guide", href: "/recovery-guide" },
+  { label: "Settings", href: "/settings" },
 ];
 
 export const USER_NAV: NavItem[] = [
   { label: "Profile", href: "/profile" },
-  { label: "Settings", href: "/settings" },
 ];

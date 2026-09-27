@@ -14,9 +14,9 @@ import { userService } from "@/services/user.service";
 
 export default function ProfilePage() {
   const { user, logout, updateUser } = useAuth();
-  const [name, setName] = useState(user?.name || "Analyst");
+  const [name, setName] = useState(user?.name || "Security Analyst");
   const [email, setEmail] = useState(user?.email || "analyst@cyberguard.ai");
-  const [role, setRole] = useState(user?.role || "user");
+  const [role, setRole] = useState(user?.role || "analyst");
   const [createdAt, setCreatedAt] = useState<string | null>(null);
 
   // Profile update state
@@ -31,12 +31,11 @@ export default function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
-  // Hydrate profile data from API / Context
   useEffect(() => {
     if (user) {
-      setName(user.name || "Analyst");
+      setName(user.name || "Security Analyst");
       setEmail(user.email || "analyst@cyberguard.ai");
-      setRole(user.role || "user");
+      setRole(user.role || "analyst");
     }
 
     const fetchLatestProfile = async () => {
@@ -114,7 +113,7 @@ export default function ProfilePage() {
         newPassword,
       });
       if (data.success) {
-        setPasswordSuccess("Password changed successfully!");
+        setPasswordSuccess("Password updated successfully!");
         setOldPassword("");
         setNewPassword("");
         setTimeout(() => setPasswordSuccess(null), 4000);
@@ -134,7 +133,7 @@ export default function ProfilePage() {
     }
   };
 
-  const initials = (name || "CG")
+  const initials = (name || "SA")
     .split(" ")
     .map((n) => n[0])
     .join("")
@@ -143,60 +142,83 @@ export default function ProfilePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col lg:flex-row bg-[#F8FAFC]">
+      <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-[#0B0F19]">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full">
-            <div className="mb-8">
-              <h1 className="text-3xl font-extrabold text-[#1F2937] tracking-tight">User Profile</h1>
-              <p className="text-slate-500 text-xs sm:text-sm mt-1">Manage account information, personal credentials, statistics, and security credentials.</p>
+          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full space-y-6">
+            
+            {/* Page Header */}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-[10px] rounded border border-emerald-300 dark:border-emerald-800">
+                  SECURITY ANALYST IDENTITY
+                </span>
+                <span className="text-[11px] font-mono text-slate-500">
+                  Access Credentials & Account Metadata
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight">
+                Analyst Profile
+              </h1>
+              <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
+                Manage your credentials, platform permissions, and authentication passwords.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {/* User Info Card */}
-              <Card className="border-[#E5E7EB] bg-white shadow-sm p-6 flex flex-col items-center text-center space-y-4">
-                <Avatar className="h-20 w-20 border-2 border-emerald-500">
-                  <AvatarFallback className="bg-emerald-100 text-[#10B981] font-bold text-xl">{initials}</AvatarFallback>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Identity Card */}
+              <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm p-6 flex flex-col items-center text-center space-y-4">
+                <Avatar className="h-20 w-20 border-2 border-emerald-500 rounded-xl">
+                  <AvatarFallback className="bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-xl rounded-xl">
+                    {initials}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-bold text-base text-[#1F2937]">{name}</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">{email}</p>
+                  <h3 className="font-mono font-bold text-base text-slate-900 dark:text-slate-100">
+                    {name}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-mono mt-0.5">{email}</p>
                 </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold">
-                  <Shield className="w-3.5 h-3.5 text-[#10B981]" /> Role: {role}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 rounded-md text-xs font-mono font-semibold">
+                  <Shield className="w-3.5 h-3.5" /> Role: {role.toUpperCase()}
                 </div>
                 {createdAt && (
-                  <p className="text-[11px] text-slate-400">
-                    Member since {new Date(createdAt).toLocaleDateString()}
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Enrolled: {new Date(createdAt).toLocaleDateString()}
                   </p>
                 )}
                 <Button 
                   onClick={handleLogout}
                   variant="outline" 
                   size="sm" 
-                  className="w-full border-red-200 text-red-600 hover:bg-red-50 text-xs mt-2 gap-2 cursor-pointer"
+                  className="w-full border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-mono mt-2 gap-2 cursor-pointer"
                 >
                   <LogOut className="w-3.5 h-3.5" /> Sign Out
                 </Button>
               </Card>
 
-              {/* Profile Details Card */}
-              <Card className="md:col-span-2 border-[#E5E7EB] bg-white shadow-sm">
-                <CardHeader className="pb-3 border-b border-[#E5E7EB]">
-                  <CardTitle className="text-base font-bold text-[#1F2937]">Profile & Personal Details</CardTitle>
-                  <CardDescription className="text-xs text-slate-500">Your account identity in CyberGuard AI</CardDescription>
+              {/* Edit Details Card */}
+              <Card className="md:col-span-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm overflow-hidden">
+                <CardHeader className="py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
+                  <CardTitle className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    Profile & Credentials
+                  </CardTitle>
+                  <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
+                    Update analyst display name and work email
+                  </CardDescription>
                 </CardHeader>
+
                 <CardContent className="p-6 space-y-4">
                   {profileError && (
-                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                    <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-lg flex items-center gap-2 font-mono">
                       <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
                       <span>{profileError}</span>
                     </div>
                   )}
 
                   {profileSuccess && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2">
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs rounded-lg flex items-center gap-2 font-mono">
                       <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
                       <span>{profileSuccess}</span>
                     </div>
@@ -205,39 +227,41 @@ export default function ProfilePage() {
                   <form onSubmit={handleProfileUpdate} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label>
+                        <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Full Name
+                        </label>
                         <div className="relative">
                           <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                           <Input 
                             value={name} 
                             onChange={(e) => setName(e.target.value)} 
-                            className="pl-9 bg-slate-50 border-[#E5E7EB] text-xs h-10 rounded-xl focus:ring-[#10B981]" 
+                            className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-mono h-10 rounded-lg focus:ring-emerald-500" 
                             required
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address</label>
+                        <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Email Address
+                        </label>
                         <div className="relative">
                           <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                           <Input 
                             value={email} 
-                            disabled 
-                            className="pl-9 bg-slate-100 border-[#E5E7EB] text-xs h-10 rounded-xl cursor-not-allowed opacity-80" 
+                            disabled
+                            className="pl-9 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-800 text-xs font-mono h-10 rounded-lg opacity-70 cursor-not-allowed" 
                           />
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center justify-between pt-2">
-                      <p className="text-xs text-slate-500">Department: Cyber Defense & Security Analytics</p>
+
+                    <div className="flex justify-end">
                       <Button 
                         type="submit" 
                         disabled={isUpdatingProfile}
-                        className="bg-[#10B981] hover:bg-[#059669] text-white text-xs px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 cursor-pointer"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-bold px-4 h-9 rounded-lg"
                       >
-                        <Save className="w-3.5 h-3.5" />
-                        {isUpdatingProfile ? "Saving..." : "Save Changes"}
+                        {isUpdatingProfile ? "Saving..." : "Update Profile"}
                       </Button>
                     </div>
                   </form>
@@ -245,59 +269,69 @@ export default function ProfilePage() {
               </Card>
             </div>
 
-            {/* Password Change Card */}
-            <Card className="border-[#E5E7EB] bg-white shadow-sm">
-              <CardHeader className="pb-3 border-b border-[#E5E7EB]">
+            {/* Password Management Card */}
+            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm overflow-hidden">
+              <CardHeader className="py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
                 <div className="flex items-center gap-2">
-                  <Key className="w-4 h-4 text-[#10B981]" />
-                  <CardTitle className="text-base font-bold text-[#1F2937]">Update Security Password</CardTitle>
+                  <Key className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <CardTitle className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    Security Credentials
+                  </CardTitle>
                 </div>
               </CardHeader>
+
               <CardContent className="p-6">
                 {passwordError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-lg flex items-center gap-2 font-mono">
                     <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
                     <span>{passwordError}</span>
                   </div>
                 )}
 
                 {passwordSuccess && (
-                  <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs rounded-xl flex items-center gap-2">
+                  <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs rounded-lg flex items-center gap-2 font-mono">
                     <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
                     <span>{passwordSuccess}</span>
                   </div>
                 )}
 
-                <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Current Password</label>
-                    <Input 
-                      type="password" 
-                      required 
-                      value={oldPassword} 
-                      onChange={(e) => setOldPassword(e.target.value)} 
-                      placeholder="••••••••" 
-                      className="bg-slate-50 border-[#E5E7EB] text-xs h-10 rounded-xl focus:ring-[#10B981]"
-                    />
+                <form onSubmit={handlePasswordChange} className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        Current Master Password
+                      </label>
+                      <Input
+                        type="password"
+                        value={oldPassword}
+                        onChange={(e) => setOldPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-mono h-10 rounded-lg focus:ring-emerald-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        New Master Password (8+ chars)
+                      </label>
+                      <Input
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-mono h-10 rounded-lg focus:ring-emerald-500"
+                        required
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">New Password</label>
-                    <Input 
-                      type="password" 
-                      required 
-                      value={newPassword} 
-                      onChange={(e) => setNewPassword(e.target.value)} 
-                      placeholder="••••••••" 
-                      className="bg-slate-50 border-[#E5E7EB] text-xs h-10 rounded-xl focus:ring-[#10B981]"
-                    />
-                  </div>
-                  <div className="flex items-center gap-3 pt-2">
-                    <Button 
-                      type="submit" 
-                      disabled={isChangingPassword}
-                      className="bg-[#10B981] hover:bg-[#059669] text-white text-xs px-5 py-2.5 rounded-xl font-semibold cursor-pointer"
+
+                  <div className="flex justify-end">
+                    <Button
+                      type="submit"
+                      disabled={isChangingPassword || !oldPassword || !newPassword}
+                      className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 text-xs font-mono font-bold px-4 h-9 rounded-lg"
                     >
-                      {isChangingPassword ? "Updating..." : "Update Password"}
+                      {isChangingPassword ? "Updating..." : "Update Master Password"}
                     </Button>
                   </div>
                 </form>

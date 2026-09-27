@@ -7,3 +7,8 @@ export { EmptyState } from "./empty-state";
 export { ErrorState } from "./error-state";
 export { AlertBanner } from "./alert-banner";
 export { ThemeToggle } from "./theme-toggle";
+export { RiskMeter } from "./risk-meter";
+export { RiskBadge, normalizeRiskLevel, getRiskLevelStyles } from "./risk-badge";
+export { RiskGauge } from "./risk-gauge";
+export { SearchBar } from "./search-bar";
+export { Pagination } from "./pagination";

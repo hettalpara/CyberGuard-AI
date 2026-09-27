@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { Bot, User } from "lucide-react";
 
@@ -9,16 +11,12 @@ export interface Message {
   isError?: boolean;
 }
 
-// ============================================================================
-// Safe Markdown Formatter (No dangerouslySetInnerHTML)
-// ============================================================================
-
 function renderInlineTokens(text: string): React.ReactNode {
   const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) {
       return (
-        <strong key={i} className="font-bold text-slate-900">
+        <strong key={i} className="font-bold text-slate-900 dark:text-slate-100">
           {part.slice(2, -2)}
         </strong>
       );
@@ -31,7 +29,7 @@ function FormattedMessageContent({ content }: { content: string }) {
   const lines = content.split("\n");
 
   return (
-    <div className="space-y-1.5 text-xs leading-relaxed">
+    <div className="space-y-1.5 text-xs leading-relaxed font-mono">
       {lines.map((line, idx) => {
         const trimmed = line.trim();
         if (!trimmed) {
@@ -43,8 +41,8 @@ function FormattedMessageContent({ content }: { content: string }) {
         if (numMatch) {
           return (
             <div key={idx} className="flex items-start gap-2 pl-1 my-0.5">
-              <span className="font-bold text-[#10B981] shrink-0 text-[11px]">{numMatch[1]}.</span>
-              <div className="flex-1">{renderInlineTokens(numMatch[2])}</div>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0 text-[11px]">{numMatch[1]}.</span>
+              <div className="flex-1 font-sans">{renderInlineTokens(numMatch[2])}</div>
             </div>
           );
         }
@@ -54,13 +52,13 @@ function FormattedMessageContent({ content }: { content: string }) {
           const bulletText = trimmed.replace(/^[-*•]\s+/, "");
           return (
             <div key={idx} className="flex items-start gap-2 pl-1 my-0.5">
-              <span className="text-[#10B981] font-bold shrink-0">•</span>
-              <div className="flex-1">{renderInlineTokens(bulletText)}</div>
+              <span className="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">•</span>
+              <div className="flex-1 font-sans">{renderInlineTokens(bulletText)}</div>
             </div>
           );
         }
 
-        return <p key={idx}>{renderInlineTokens(trimmed)}</p>;
+        return <p key={idx} className="font-sans">{renderInlineTokens(trimmed)}</p>;
       })}
     </div>
   );
@@ -82,22 +80,22 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={`p-2 rounded-xl text-white shrink-0 ${
           isUser
-            ? "bg-[#111827]"
+            ? "bg-slate-900 dark:bg-slate-800"
             : message.isError
             ? "bg-amber-600"
-            : "bg-[#10B981]"
+            : "bg-emerald-600"
         }`}
       >
         {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
       </div>
 
       <div
-        className={`max-w-[85%] sm:max-w-[78%] rounded-2xl p-3.5 ${
+        className={`max-w-[85%] sm:max-w-[80%] rounded-xl p-3.5 ${
           isUser
-            ? "bg-[#111827] text-white rounded-tr-none text-xs leading-relaxed"
+            ? "bg-slate-900 dark:bg-slate-800 text-white rounded-tr-none text-xs leading-relaxed font-sans"
             : message.isError
-            ? "bg-amber-50 border border-amber-200 text-amber-900 rounded-tl-none font-medium"
-            : "bg-slate-50 border border-[#E5E7EB] text-slate-800 rounded-tl-none"
+            ? "bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-300 rounded-tl-none font-medium"
+            : "bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none"
         }`}
       >
         {isUser ? (
@@ -107,8 +105,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
         )}
 
         <div
-          className={`text-[10px] mt-1.5 ${
-            isUser ? "text-slate-400 text-right" : "text-slate-400"
+          className={`text-[10px] mt-1.5 font-mono ${
+            isUser ? "text-slate-400 text-right" : "text-slate-500 dark:text-slate-400"
           }`}
         >
           {message.timestamp}
