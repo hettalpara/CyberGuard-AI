@@ -41,14 +41,28 @@
 }
 
 :root {
-  /* DARK MODE - DEFAULT SOC PALETTE (Requirement 7) */
-  --bg: #07101f;
-  --panel: #0b1729;
+  /* DARK MODE - DEFAULT SOC PALETTE (Requirement 4) */
+  --background: #07101F;
+  --foreground: #EDF4FF;
+
+  --card: #0B1729;
+  --card-foreground: #EDF4FF;
+
+  --input: #091426;
+  --input-foreground: #EDF4FF;
+
+  --muted: #7185A1;
+  --border: #1B2B42;
+
+  --primary: #3478FF;
+
+  /* Aliases for CyberGuard components */
+  --bg: var(--background);
+  --text: var(--foreground);
+  --panel: var(--card);
   --panel-2: #0e1d32;
-  --line: #1b2b42;
-  --muted: #8fa2bd;
-  --text: #edf4ff;
-  --blue: #3478ff;
+  --line: var(--border);
+  --blue: var(--primary);
   --green: #16c784;
   --amber: #f5a524;
   --red: #ef4444;
@@ -61,17 +75,12 @@
   --nav-active-bg: linear-gradient(90deg, rgba(46,103,255,.35), rgba(46,103,255,.12));
   --nav-hover: #101f35;
 
-  --input-bg: #091426;
-  --input-color: #EDF4FF;
-  --input-placeholder: #7185A1;
-  --input-border: #1b2b42;
+  --input-bg: var(--input);
+  --input-color: var(--input-foreground);
+  --input-placeholder: var(--muted);
+  --input-border: var(--border);
 
-  --background: var(--bg);
-  --foreground: var(--text);
-  --card: var(--panel);
-  --card-foreground: var(--text);
   --card-elevated: var(--panel-2);
-  --border: var(--line);
   --primary-blue: var(--blue);
   --success: var(--green);
   --warning: var(--amber);
@@ -80,14 +89,28 @@
 }
 
 html.light, .light {
-  /* LIGHT MODE PALETTE (Requirement 7) */
-  --bg: #F4F7FB;
-  --panel: #FFFFFF;
-  --panel-2: #F8FAFC;
-  --line: #DBE3EE;
+  /* LIGHT MODE PALETTE (Requirement 4) */
+  --background: #F4F7FB;
+  --foreground: #172338;
+
+  --card: #FFFFFF;
+  --card-foreground: #172338;
+
+  --input: #FFFFFF;
+  --input-foreground: #172338;
+
   --muted: #61728A;
-  --text: #172338;
-  --blue: #2563EB;
+  --border: #DBE3EE;
+
+  --primary: #2563EB;
+
+  /* Aliases for CyberGuard components */
+  --bg: var(--background);
+  --text: var(--foreground);
+  --panel: var(--card);
+  --panel-2: #F8FAFC;
+  --line: var(--border);
+  --blue: var(--primary);
   --green: #059669;
   --amber: #D97706;
   --red: #DC2626;
@@ -100,49 +123,17 @@ html.light, .light {
   --nav-active-bg: linear-gradient(90deg, rgba(37,99,235,.15), rgba(37,99,235,.05));
   --nav-hover: #F1F5F9;
 
-  --input-bg: #ffffff;
-  --input-color: #172338;
-  --input-placeholder: #8A9AB0;
-  --input-border: #DBE3EE;
+  --input-bg: var(--input);
+  --input-color: var(--input-foreground);
+  --input-placeholder: var(--muted);
+  --input-border: var(--border);
 
-  --background: var(--bg);
-  --foreground: var(--text);
-  --card: var(--panel);
-  --card-foreground: var(--text);
   --card-elevated: var(--panel-2);
-  --border: var(--line);
   --primary-blue: var(--blue);
   --success: var(--green);
   --warning: var(--amber);
   --danger: var(--red);
   --ai-purple: var(--purple);
-}
-
-html.dark, .dark {
-  /* EXPLICIT DARK MODE (matches :root) */
-  --bg: #07101f;
-  --panel: #0b1729;
-  --panel-2: #0e1d32;
-  --line: #1b2b42;
-  --muted: #8fa2bd;
-  --text: #edf4ff;
-  --blue: #3478ff;
-  --green: #16c784;
-  --amber: #f5a524;
-  --red: #ef4444;
-  --purple: #9b6cff;
-
-  --sidebar-bg: rgba(6,15,29,.96);
-  --card-gradient: linear-gradient(180deg, rgba(14,29,50,.92), rgba(9,21,36,.92));
-  --ai-panel-bg: linear-gradient(145deg, rgba(52,29,104,.3), rgba(12,22,41,.92));
-  --ai-summary-bg: rgba(119,75,220,.12);
-  --nav-active-bg: linear-gradient(90deg, rgba(46,103,255,.35), rgba(46,103,255,.12));
-  --nav-hover: #101f35;
-
-  --input-bg: #091426;
-  --input-color: #EDF4FF;
-  --input-placeholder: #7185A1;
-  --input-border: #1b2b42;
 }
 
 * { box-sizing: border-box; }
@@ -342,16 +333,21 @@ html.light input:-moz-autofill-preview,
   width: 100%;
   height: 42px;
   border-radius: 8px;
-  border: 1px solid var(--input-border);
-  background-color: var(--input-bg);
-  color: var(--input-color);
+  border: 1px solid var(--border);
+  background-color: var(--input);
+  color: var(--input-foreground);
   padding: 0 14px;
   font-size: 13px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, color 0.18s ease;
   -webkit-appearance: none;
   appearance: none;
+}
+
+.auth-input-element::placeholder {
+  color: var(--muted);
+  opacity: 1;
 }
 
 .auth-input-element.has-icon {
@@ -363,13 +359,13 @@ html.light input:-moz-autofill-preview,
 }
 
 .auth-input-element:focus {
-  border-color: var(--blue);
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(52, 120, 255, 0.22);
 }
 
 html.light .auth-input-element:focus,
 .light .auth-input-element:focus {
-  border-color: #2563EB;
+  border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
 }
 

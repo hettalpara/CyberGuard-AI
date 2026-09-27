@@ -50,10 +50,10 @@ export default function LoginPage() {
       </div>
 
       {/* Login Card */}
-      <div className="card-cg" style={{ padding: 0 }}>
-        <div className="card-head-cg">
+      <div className="card-cg" style={{ padding: 0, background: "var(--card)", color: "var(--card-foreground)", border: "1px solid var(--border)", borderRadius: "12px" }}>
+        <div className="card-head-cg" style={{ borderBottom: "1px solid var(--border)" }}>
           <div>
-            <h3 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text)" }}>
+            <h3 style={{ fontSize: 13, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--foreground)" }}>
               Analyst Authentication
             </h3>
             <p style={{ fontSize: 11, color: "var(--muted)", margin: "4px 0 0" }}>

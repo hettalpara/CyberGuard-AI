@@ -25,7 +25,16 @@ export function ThemeToggle({ className, showLabel = false }: ThemeToggleProps) 
   const isDark = mounted ? resolvedTheme === "dark" : true;
 
   const toggleTheme = () => {
-    setTheme(isDark ? "light" : "dark");
+    const nextTheme = isDark ? "light" : "dark";
+    setTheme(nextTheme);
+    try {
+      localStorage.setItem("cyberguard-theme", nextTheme);
+      if (nextTheme === "light") {
+        document.documentElement.classList.add("light");
+      } else {
+        document.documentElement.classList.remove("light");
+      }
+    } catch {}
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -99,11 +108,23 @@ export function ThemeSegmentedControl({ className }: { className?: string }) {
 
   const isDark = mounted ? resolvedTheme === "dark" : true;
 
+  const applyTheme = (targetTheme: "dark" | "light") => {
+    setTheme(targetTheme);
+    try {
+      localStorage.setItem("cyberguard-theme", targetTheme);
+      if (targetTheme === "light") {
+        document.documentElement.classList.add("light");
+      } else {
+        document.documentElement.classList.remove("light");
+      }
+    } catch {}
+  };
+
   return (
     <div className={cn("inline-flex items-center p-1 rounded-lg border border-border bg-card-elevated", className)}>
       <button
         type="button"
-        onClick={() => setTheme("dark")}
+        onClick={() => applyTheme("dark")}
         aria-pressed={isDark}
         className={cn(
           "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer",
@@ -118,7 +139,7 @@ export function ThemeSegmentedControl({ className }: { className?: string }) {
 
       <button
         type="button"
-        onClick={() => setTheme("light")}
+        onClick={() => applyTheme("light")}
         aria-pressed={!isDark}
         className={cn(
           "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer",
