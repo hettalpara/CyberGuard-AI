@@ -1,21 +1,18 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
 import { 
-  Sun, 
-  Moon, 
   Bell, 
   ShieldCheck, 
   User as UserIcon, 
   Settings, 
   LogOut,
   ChevronRight,
-  Activity
+  Search,
+  ExternalLink
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,32 +24,43 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/auth-context";
+import { ThemeToggle } from "@/components/common/theme-toggle";
 
 const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
-  "/dashboard": { title: "SOC Overview", subtitle: "Real-time threat posture & scans" },
-  "/analyzer": { title: "URL Security Analysis", subtitle: "Multi-vector threat intelligence inspection" },
-  "/reports": { title: "Incident Reports", subtitle: "Official forensic documentation & exports" },
-  "/history": { title: "Scan History", subtitle: "Timeline of past URL investigations" },
-  "/assistant": { title: "AI Security Assistant", subtitle: "Defensive triage & cybercrime guidance" },
-  "/recovery-guide": { title: "Incident Recovery Guide", subtitle: "Mitigation workflows & helpline protocols" },
-  "/profile": { title: "Analyst Profile", subtitle: "Account credentials & security settings" },
-  "/settings": { title: "System Preferences", subtitle: "Threat preferences & UI configurations" },
+  "/dashboard": { title: "Security Overview", subtitle: "Monitor URL analysis, threat intelligence and incident activity" },
+  "/analyzer": { title: "URL Security Analysis", subtitle: "Multi-vector threat intelligence and AI-powered security analysis" },
+  "/reports": { title: "Incident Reports", subtitle: "Official forensic documentation & downloadable reports" },
+  "/history": { title: "Scan History", subtitle: "Timeline and repository of historical security investigations" },
+  "/assistant": { title: "AI Security Assistant", subtitle: "Defensive triage, scam response and forensic consultation" },
+  "/recovery-guide": { title: "Incident Recovery Guide", subtitle: "Immediate containment protocols and defensive playbooks" },
+  "/evidence": { title: "Forensic Evidence", subtitle: "Cryptographic hash verification and chain-of-custody logging" },
+  "/cyber-law": { title: "Cyber Law & Reporting", subtitle: "Statutory frameworks, IT Act provisions and reporting guidelines" },
+  "/profile": { title: "Analyst Profile", subtitle: "Account credentials and security privileges" },
+  "/settings": { title: "Settings", subtitle: "System configurations and appearance preferences" },
 };
 
 export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [quickQuery, setQuickQuery] = useState("");
 
   const handleLogout = async () => {
     await logout();
     router.push("/login");
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickQuery.trim()) return;
+    const trimmed = quickQuery.trim();
+    // If it looks like a URL or domain, route straight to analyzer with query
+    if (trimmed.includes(".") || trimmed.startsWith("http")) {
+      router.push(`/analyzer?url=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push(`/history?search=${encodeURIComponent(trimmed)}`);
+    }
+    setQuickQuery("");
   };
 
   const displayName = user?.name || user?.fullName || "Security Analyst";
@@ -69,100 +77,121 @@ export function Header() {
   };
 
   return (
-    <header className="h-14 border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0B0F19]/95 backdrop-blur-xs sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6">
+    <header className="h-14 border-b border-border bg-card/95 backdrop-blur-xs sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 transition-colors">
       {/* Page Title & Breadcrumb */}
-      <div className="flex items-center gap-2">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-600 dark:text-slate-400 font-mono">Platform</span>
-            <ChevronRight className="w-3 h-3 text-slate-500" />
-            <span className="font-semibold text-slate-900 dark:text-slate-100 font-mono">
-              {currentRouteMeta.title}
-            </span>
-          </div>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="text-text-secondary font-mono">Platform</span>
+          <ChevronRight className="w-3.5 h-3.5 text-text-secondary/60" />
+          <span className="font-semibold text-text-primary font-mono truncate">
+            {currentRouteMeta.title}
+          </span>
         </div>
       </div>
 
+      {/* Center / Global Search Bar */}
+      <div className="hidden lg:flex items-center flex-1 max-w-md mx-6">
+        <form onSubmit={handleSearchSubmit} className="relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-secondary pointer-events-none" />
+          <input
+            type="text"
+            value={quickQuery}
+            onChange={(e) => setQuickQuery(e.target.value)}
+            placeholder="Quick analyze URL or search scans..."
+            className="w-full h-8 pl-8 pr-12 text-xs bg-muted/60 border border-border rounded-md text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-1 focus:ring-primary-blue focus:border-primary-blue transition-colors"
+          />
+          <kbd className="absolute right-2 top-1/2 -translate-y-1/2 px-1.5 py-0.5 text-[9px] font-mono font-medium text-text-secondary bg-card border border-border rounded pointer-events-none">
+            ↵ Enter
+          </kbd>
+        </form>
+      </div>
+
       {/* Right Actions: System status, Theme switch, Notifications, User Profile */}
-      <div className="flex items-center gap-2.5 ml-auto">
-        {/* Live System Engine Status */}
-        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md text-[11px] font-mono text-slate-600 dark:text-slate-300">
-          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span>Threat Engines: Synced</span>
+      <div className="flex items-center gap-3 ml-auto">
+        {/* Live Threat Intelligence Status */}
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 bg-muted/50 border border-border rounded-md text-[11px] font-mono text-text-secondary">
+          <ShieldCheck className="h-3.5 w-3.5 text-success" />
+          <span>Providers: Online</span>
         </div>
 
-        {/* Theme switch */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
-          className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 rounded-md h-8 w-8"
-          aria-label="Toggle Theme"
-        >
-          {mounted && resolvedTheme === "dark" ? (
-            <Sun className="h-4 w-4" />
-          ) : (
-            <Moon className="h-4 w-4" />
-          )}
-        </Button>
+        {/* Global Dark / Light Theme Toggle Switch */}
+        <div className="flex items-center border-l border-border pl-3">
+          <ThemeToggle />
+        </div>
 
         {/* System Notifications */}
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="inline-flex items-center justify-center rounded-md text-xs transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 h-8 w-8 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 relative cursor-pointer"
-            aria-label="Notifications"
+            className="inline-flex items-center justify-center rounded-md text-xs transition-colors hover:bg-muted h-8 w-8 text-text-secondary hover:text-text-primary relative cursor-pointer"
+            aria-label="Security notifications"
           >
             <Bell className="h-4 w-4" />
-            <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-success ring-2 ring-card" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-lg rounded-lg text-xs">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="font-mono text-xs font-bold text-slate-900 dark:text-slate-100 px-3 py-2">
-                SECURITY ALERTS
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-800" />
-            <div className="p-4 text-center text-xs text-slate-500 dark:text-slate-400">
-              No unresolved high-severity security incidents.
+          <DropdownMenuContent align="end" className="w-80 bg-card border-border shadow-xl rounded-lg text-xs p-0 overflow-hidden">
+            <div className="px-3.5 py-2.5 border-b border-border bg-muted/40 flex items-center justify-between">
+              <span className="font-mono text-xs font-bold text-text-primary">SECURITY NOTIFICATIONS</span>
+              <span className="text-[10px] text-text-secondary font-mono">SOC FEEDS</span>
+            </div>
+            <div className="p-4 space-y-2">
+              <div className="flex items-start gap-2.5 p-2 rounded bg-muted/40 border border-border/60">
+                <span className="h-2 w-2 rounded-full bg-success mt-1 shrink-0" />
+                <div className="space-y-0.5">
+                  <p className="text-[11px] font-semibold text-text-primary">Threat Intelligence Active</p>
+                  <p className="text-[10px] text-text-secondary">Safe Browsing, VirusTotal & URLhaus feeds are synchronized.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5 p-2 rounded bg-muted/40 border border-border/60">
+                <span className="h-2 w-2 rounded-full bg-primary-blue mt-1 shrink-0" />
+                <div className="space-y-0.5">
+                  <p className="text-[11px] font-semibold text-text-primary">AI Advisory Ready</p>
+                  <p className="text-[10px] text-text-secondary">Gemini security synthesis is operational for threat triage.</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-3.5 py-2 border-t border-border bg-muted/20 text-center">
+              <Link href="/analyzer" className="text-[11px] text-primary-blue hover:underline inline-flex items-center gap-1 font-medium">
+                Run security scan <ExternalLink className="h-2.5 w-2.5" />
+              </Link>
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
 
         {/* User Profile Menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="relative h-8 w-8 rounded-md cursor-pointer overflow-hidden border border-slate-200 dark:border-slate-800 focus:outline-none">
+          <DropdownMenuTrigger className="relative h-8 w-8 rounded-md cursor-pointer overflow-hidden border border-border focus:outline-none focus:ring-2 focus:ring-primary-blue">
             <Avatar className="h-8 w-8 rounded-md">
-              <AvatarFallback className="bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-bold text-xs">
+              <AvatarFallback className="bg-primary-blue/20 text-primary-blue font-bold text-xs">
                 {initials}
               </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-lg rounded-lg p-1 text-xs">
+          <DropdownMenuContent align="end" className="w-56 bg-card border-border shadow-xl rounded-lg p-1 text-xs">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="font-normal px-2 py-1.5">
+              <DropdownMenuLabel className="font-normal px-2.5 py-2">
                 <div className="flex flex-col space-y-0.5">
-                  <p className="text-xs font-bold text-slate-900 dark:text-slate-100">{displayName}</p>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono">{displayEmail}</p>
+                  <p className="text-xs font-bold text-text-primary">{displayName}</p>
+                  <p className="text-[11px] text-text-secondary truncate font-mono">{displayEmail}</p>
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-800" />
+            <DropdownMenuSeparator className="bg-border" />
             <Link href="/profile">
-              <DropdownMenuItem className="cursor-pointer rounded text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2">
-                <UserIcon className="w-3.5 h-3.5 text-slate-400" /> Analyst Profile
+              <DropdownMenuItem className="cursor-pointer rounded text-text-secondary hover:text-text-primary hover:bg-muted flex items-center gap-2">
+                <UserIcon className="w-3.5 h-3.5 text-text-secondary" /> Profile
               </DropdownMenuItem>
             </Link>
             <Link href="/settings">
-              <DropdownMenuItem className="cursor-pointer rounded text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2">
-                <Settings className="w-3.5 h-3.5 text-slate-400" /> Settings
+              <DropdownMenuItem className="cursor-pointer rounded text-text-secondary hover:text-text-primary hover:bg-muted flex items-center gap-2">
+                <Settings className="w-3.5 h-3.5 text-text-secondary" /> Settings
               </DropdownMenuItem>
             </Link>
-            <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-800" />
+            <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem 
               onClick={handleLogout}
-              className="cursor-pointer rounded text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center gap-2 font-medium"
+              className="cursor-pointer rounded text-danger hover:bg-danger/10 flex items-center gap-2 font-medium"
             >
-              <LogOut className="w-3.5 h-3.5" /> Sign Out
+              <LogOut className="w-3.5 h-3.5" /> Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

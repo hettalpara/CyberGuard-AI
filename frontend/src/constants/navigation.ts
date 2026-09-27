@@ -12,6 +12,11 @@ export const MAIN_NAV: NavItem[] = [
   { label: "Scan History", href: "/history" },
   { label: "AI Assistant", href: "/assistant" },
   { label: "Recovery Guide", href: "/recovery-guide" },
+  { label: "Evidence", href: "/evidence" },
+  { label: "Cyber Law Info", href: "/cyber-law" },
+];
+
+export const SETTINGS_NAV: NavItem[] = [
   { label: "Settings", href: "/settings" },
 ];
 

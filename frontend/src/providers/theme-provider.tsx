@@ -1,6 +1,7 @@
 // ============================================================================
 // Theme Provider
 // Wraps next-themes ThemeProvider to be used as a client component.
+// Defaults to Dark Mode across the platform, persisting user preference.
 // ============================================================================
 
 "use client";
@@ -22,8 +23,8 @@ export function ThemeProvider({
     <NextThemesProvider
       attribute="class"
       defaultTheme={defaultTheme}
-      enableSystem
-      disableTransitionOnChange
+      enableSystem={false}
+      disableTransitionOnChange={false}
       storageKey={storageKey}
     >
       {children}
