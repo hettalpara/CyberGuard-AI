@@ -11,15 +11,12 @@ import {
   AlertCircle, 
   Globe, 
   Mail, 
-  RotateCw,
+  RefreshCw,
   FileText,
   Bot,
   ShieldCheck,
-  Activity
+  ArrowRight
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
@@ -68,57 +65,67 @@ interface DetailedAnalysis {
     explanation: string;
     reasons: string[];
   };
-  safeBrowsing: {
-    available: boolean;
-    match: boolean;
-    threatType?: string;
-    threatTypes?: string[];
-    status: string;
-    reason?: string;
-    error?: string;
-    score?: number | null;
-  };
-  urlhaus: {
-    available: boolean;
-    match: boolean;
-    threatType?: string;
-    tags?: string[];
-    status: string;
-    reason?: string;
-    error?: string;
-  };
-  virusTotal: {
-    detectionRatio: string;
-    enginesFlagged: number;
-    totalEngines: number;
-    maliciousCount: number;
-    suspiciousCount: number;
-    undetectedCount: number;
-    status?: string;
-    error?: string;
-  };
-  riskScore: number | null;
   threatLevel: string;
+  riskScore: number | null;
   confidence: number;
-  analysisStatus?: string;
+  analysisStatus: string;
   overrideTriggered?: boolean;
   overrideReason?: string | null;
   overrideType?: string | null;
   calculationMethod?: string;
-  riskFactors: RiskFactorData[];
+  riskFactors?: RiskFactorData[];
   findings?: SecurityFindingData[];
-  riskReasons: string[];
+  riskReasons?: string[];
   aiAnalysis?: AIAnalysisData;
-  aiExplanation: string;
-  recommendedActions: string[];
+  aiExplanation?: string;
+  recommendedActions?: string[];
+  safeBrowsing: {
+    available: boolean;
+    status: string;
+    matches: any[];
+    threatTypes: string[];
+    platforms: string[];
+    isMalicious: boolean;
+    cached?: boolean;
+    error?: string;
+  };
+  virusTotal: {
+    available: boolean;
+    status: string;
+    malicious: number;
+    suspicious: number;
+    harmless: number;
+    undetected: number;
+    total: number;
+    detectionRatio: string;
+    positives: number;
+    scanDate?: string;
+    permalink?: string;
+    isMalicious: boolean;
+    cached?: boolean;
+    error?: string;
+  };
+  urlhaus: {
+    available: boolean;
+    status: string;
+    queryStatus: string;
+    threatType?: string;
+    urlhausUrl?: string;
+    reporter?: string;
+    dateAdded?: string;
+    tags: string[];
+    isMalicious: boolean;
+    cached?: boolean;
+    error?: string;
+  };
   timestamp: string;
   reportId: string;
 }
 
-export default function SmartUrlAnalyzerPage() {
+export default function AnalyzerPage() {
   const router = useRouter();
+  const [inputUrl, setInputUrl] = useState("http://xn--paypa1-9za.example/login");
   const [activeMode, setActiveMode] = useState<"url" | "email">("url");
-  const [inputUrl, setInputUrl] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [scanState, setScanState] = useState<ScanState>("IDLE");
   const [analysis, setAnalysis] = useState<DetailedAnalysis | null>(null);
@@ -131,141 +138,126 @@ export default function SmartUrlAnalyzerPage() {
       const urlParam = params.get("url");
       if (urlParam) {
         setInputUrl(urlParam);
-      }
-      const modeParam = params.get("mode");
-      if (modeParam === "email") {
-        setActiveMode("email");
+        setTimeout(() => {
+          handleAnalyze(urlParam);
+        }, 100);
       }
     }
   }, []);
 
-  const handleAnalyze = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const rawInput = inputUrl.trim();
-    if (!rawInput || isAnalyzing || scanState === "VALIDATING" || scanState === "SCANNING") {
+  const handleAnalyze = async (overrideUrl?: string) => {
+    const targetUrl = (overrideUrl || inputUrl).trim();
+    if (!targetUrl) {
+      setError("Please enter a valid URL to analyze.");
       return;
     }
 
     setIsAnalyzing(true);
-    setScanState("VALIDATING");
-    setAnalysis(null);
     setError(null);
-
-    // Client-side URL validation
-    let parsedUrl: URL | null = null;
-    try {
-      const urlWithScheme = /^https?:\/\//i.test(rawInput) ? rawInput : `http://${rawInput}`;
-      parsedUrl = new URL(urlWithScheme);
-      if (!parsedUrl.hostname || parsedUrl.hostname.length < 3 || !parsedUrl.hostname.includes(".")) {
-        throw new Error("Invalid domain name");
-      }
-    } catch {
-      setScanState("FAILED");
-      setError("Please enter a valid web URL or domain name (e.g. https://example.com or 192.0.2.1).");
-      setIsAnalyzing(false);
-      return;
-    }
-
-    setScanState("SCANNING");
+    setScanState("VALIDATING");
 
     try {
-      const { data } = await analyzerService.scanUrl({ url: rawInput });
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      setScanState("SCANNING");
+
+      const response = await analyzerService.scanUrl({ url: targetUrl });
+      const data = response.data;
 
       if (data && data.success && data.scan) {
-        const scan = data.scan as any;
-        
-        // Use risk level directly from backend
-        const threatLevel = scan.risk?.level || scan.riskLevel || "SAFE";
+        const scan = data.scan;
+        const threatLevel = (scan.riskLevel || scan.risk?.level || "SAFE").toUpperCase();
 
-        const malCount = Number(scan.virusTotal?.maliciousCount ?? (scan.virusTotal?.malicious ? 1 : 0));
-        const suspCount = Number(scan.virusTotal?.suspiciousCount ?? (scan.virusTotal?.suspicious ? 1 : 0));
-        const undetCount = Number(scan.virusTotal?.undetectedCount ?? 0);
-        const totEngines = Number(scan.virusTotal?.totalEngines ?? 70);
-
-        const riskFactors: RiskFactorData[] = scan.riskFactors || scan.risk?.factors || [];
+        const riskFactors: RiskFactorData[] = [];
+        if (scan.risk && Array.isArray(scan.risk.reasons)) {
+          scan.risk.reasons.forEach((reason: string) => {
+            riskFactors.push({
+              name: "Local Heuristics",
+              reason,
+              score: null,
+              weight: 0,
+              contribution: 0,
+              impact: threatLevel === "CRITICAL" || threatLevel === "HIGH" ? "HIGH" : "MODERATE",
+              status: "DETECTED",
+              available: true,
+            });
+          });
+        }
 
         const result: DetailedAnalysis = {
-          url: scan.url,
-          normalizedUrl: scan.normalizedUrl,
+          url: scan.url || targetUrl,
+          normalizedUrl: scan.normalizedUrl || targetUrl,
           isValid: true,
           ssl: {
-            valid: scan.ssl?.valid ?? false,
-            issuer: scan.ssl?.issuer || (scan.ssl?.valid ? "Verified Certificate Authority" : "No SSL / Insecure"),
-            validDaysRemaining: scan.ssl?.validDaysRemaining ?? 0,
-            status: scan.ssl?.status,
+            valid: scan.sslAnalysis?.status === "VALID" || scan.sslAnalysis?.status === "COMPLETED",
+            issuer: (scan.sslAnalysis?.certificate as any)?.issuer || "Unknown CA",
+            validDaysRemaining: (scan.sslAnalysis?.certificate as any)?.validDaysRemaining || 0,
+            status: scan.sslAnalysis?.status || "UNKNOWN",
           },
           safeBrowsing: {
-            available:
-              Boolean(scan.safeBrowsing?.available) &&
-              scan.safeBrowsing?.status !== "UNAVAILABLE" &&
-              scan.safeBrowsing?.status !== "ERROR",
-            match: Boolean(scan.safeBrowsing?.threatDetected),
-            threatType:
-              scan.safeBrowsing?.threatTypes && scan.safeBrowsing.threatTypes.length > 0
-                ? scan.safeBrowsing.threatTypes.join(", ")
-                : scan.safeBrowsing?.threatDetected
-                ? "Threat Flagged"
-                : undefined,
+            available: scan.safeBrowsing?.available !== false && scan.safeBrowsing?.status !== "UNAVAILABLE",
+            status: scan.safeBrowsing?.status || (scan.safeBrowsing?.threatDetected ? "MALICIOUS" : "CLEAN"),
+            matches: [],
             threatTypes: scan.safeBrowsing?.threatTypes || [],
-            status: scan.safeBrowsing?.status || "UNAVAILABLE",
-            reason: scan.safeBrowsing?.reason,
+            platforms: [],
+            isMalicious: scan.safeBrowsing?.threatDetected || false,
+            cached: undefined,
             error: scan.safeBrowsing?.error,
-            score: scan.safeBrowsing?.score ?? null,
-          },
-          urlhaus: {
-            available:
-              Boolean(scan.urlhaus?.available) &&
-              scan.urlhaus?.status !== "UNAVAILABLE" &&
-              scan.urlhaus?.status !== "ERROR",
-            match: Boolean(scan.urlhaus?.match),
-            threatType: scan.urlhaus?.threatType,
-            tags: scan.urlhaus?.tags || [],
-            status: scan.urlhaus?.status || "UNAVAILABLE",
-            reason: scan.urlhaus?.reason,
-            error: scan.urlhaus?.error,
           },
           virusTotal: {
-            detectionRatio: scan.virusTotal?.detectionRatio || `${malCount + suspCount} / ${totEngines || 70}`,
-            enginesFlagged: malCount + suspCount,
-            totalEngines: totEngines || 70,
-            maliciousCount: malCount,
-            suspiciousCount: suspCount,
-            undetectedCount: undetCount,
-            status: scan.virusTotal?.status,
+            available: scan.virusTotal?.available !== false && scan.virusTotal?.status !== "UNAVAILABLE",
+            status: scan.virusTotal?.status || (scan.virusTotal?.malicious ? "MALICIOUS" : "CLEAN"),
+            malicious: scan.virusTotal?.maliciousCount || (scan.virusTotal?.malicious ? 1 : 0),
+            suspicious: scan.virusTotal?.suspiciousCount || 0,
+            harmless: scan.virusTotal?.harmless || 0,
+            undetected: scan.virusTotal?.undetectedCount || 0,
+            total: scan.virusTotal?.totalEngines || 0,
+            detectionRatio: scan.virusTotal?.detectionRatio || "0/0",
+            positives: scan.virusTotal?.enginesFlagged || 0,
+            scanDate: undefined,
+            permalink: scan.virusTotal?.permalink || undefined,
+            isMalicious: Boolean(scan.virusTotal?.malicious),
+            cached: undefined,
             error: scan.virusTotal?.error,
+          },
+          urlhaus: {
+            available: scan.urlhaus?.available !== false && scan.urlhaus?.status !== "UNAVAILABLE",
+            status: scan.urlhaus?.status || (scan.urlhaus?.match ? "MALICIOUS" : "CLEAN"),
+            queryStatus: "ok",
+            threatType: scan.urlhaus?.threatType,
+            urlhausUrl: undefined,
+            reporter: undefined,
+            dateAdded: undefined,
+            tags: scan.urlhaus?.tags || [],
+            isMalicious: scan.urlhaus?.match || false,
+            cached: undefined,
+            error: scan.urlhaus?.error,
           },
           urlIntelligence: scan.urlIntelligence
             ? {
-                available:
-                  scan.urlIntelligence.available !== false &&
-                  scan.urlIntelligence.status !== "UNAVAILABLE" &&
-                  scan.urlIntelligence.status !== "ERROR",
+                available: scan.urlIntelligence.status !== "UNAVAILABLE",
                 score: scan.urlIntelligence.score,
-                riskLevel: scan.urlIntelligence.riskLevel || "SAFE",
+                riskLevel: scan.urlIntelligence.level || "SAFE",
                 status: scan.urlIntelligence.status || "COMPLETED",
                 indicators: scan.urlIntelligence.indicators || [],
-                explanation: scan.urlIntelligence.explanation || scan.urlIntelligence.reasons?.[0] || "",
+                explanation: scan.urlIntelligence.reasons?.[0] || "",
                 reasons: scan.urlIntelligence.reasons || [],
               }
             : undefined,
           sslAnalysis: scan.sslAnalysis
             ? {
-                available:
-                  scan.sslAnalysis.available !== false &&
-                  scan.sslAnalysis.status !== "UNAVAILABLE" &&
-                  scan.sslAnalysis.status !== "ERROR",
+                available: scan.sslAnalysis.status !== "UNAVAILABLE",
                 protocol: scan.sslAnalysis.protocol || "UNKNOWN",
-                certificateStatus: scan.sslAnalysis.certificateStatus || "UNKNOWN",
+                certificateStatus: scan.sslAnalysis.status || "UNKNOWN",
                 score: scan.sslAnalysis.score,
-                riskLevel: scan.sslAnalysis.riskLevel || "SAFE",
+                riskLevel: scan.sslAnalysis.level || "SAFE",
                 status: scan.sslAnalysis.status || "COMPLETED",
-                issuer: scan.sslAnalysis.certificate?.issuer,
-                validDaysRemaining: scan.sslAnalysis.certificate?.validDaysRemaining,
-                hostnameMatch: scan.sslAnalysis.certificate?.hostnameMatch,
-                authorized: scan.sslAnalysis.certificate?.authorized,
-                explanation: scan.sslAnalysis.explanation || scan.sslAnalysis.reason || "",
-                reasons: scan.sslAnalysis.reasons || [],
-                error: scan.sslAnalysis.error,
+                issuer: (scan.sslAnalysis.certificate as any)?.issuer,
+                validDaysRemaining: (scan.sslAnalysis.certificate as any)?.validDaysRemaining,
+                hostnameMatch: (scan.sslAnalysis.certificate as any)?.hostnameMatch,
+                authorized: (scan.sslAnalysis.certificate as any)?.authorized,
+                explanation: scan.sslAnalysis.reason || "",
+                reasons: [],
+                error: undefined,
               }
             : undefined,
           riskScore: scan.riskScore,
@@ -288,8 +280,8 @@ export default function SmartUrlAnalyzerPage() {
                 "Never share OTPs or one-time verification tokens on unverified pages."
               ],
           timestamp: new Date(scan.scannedAt || Date.now()).toLocaleString(),
-          reportId: data.reportId || scan.reportId || `CG-${(scan.id || "").slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`,
-          scanId: scan._id || scan.id || scan.scanId,
+          reportId: data.reportId || scan.reportId || `CG-2026-${(scan.id || "").slice(-7).toUpperCase() || "579F328"}`,
+          scanId: scan.id || (scan as any)._id || (scan as any).scanId,
         };
 
         setScanState("COMPLETED");
@@ -327,258 +319,219 @@ export default function SmartUrlAnalyzerPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-[#0B0F19]">
+      <div className="app-cg">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="main-cg">
           <Header />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full space-y-6">
+          <main className="content-cg">
             
-            {/* Top Page Header */}
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-[10px] rounded border border-emerald-300 dark:border-emerald-800">
-                  CORE SOC PIPELINE
-                </span>
-                <span className="text-[11px] font-mono text-slate-500">
-                  Multi-Source Threat Inspection Engine
-                </span>
+            {/* Page Title */}
+            <div className="page-title-cg">
+              <div>
+                <h1>URL Security Analysis</h1>
+                <p>Analyze URLs using multiple threat intelligence sources and AI-powered analysis.</p>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight">
-                URL Security Analysis
-              </h1>
-              <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-3xl">
-                Analyze a URL using multiple threat intelligence sources and local security checks.
-              </p>
+              <span style={{ color: "var(--blue)", fontSize: 11 }}>ⓘ Multi-Engine Pipeline</span>
             </div>
 
-            {/* Vector Selector Mode Switcher */}
-            <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+            {/* Selector: URL vs Email Threat Analyzer */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
               <button
                 type="button"
                 onClick={() => setActiveMode("url")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition flex items-center gap-2 cursor-pointer ${
-                  activeMode === "url"
-                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
-                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-800"
-                }`}
+                className={`btn-cg ${activeMode === "url" ? "primary" : ""}`}
               >
-                <Globe className="w-3.5 h-3.5 text-emerald-500" />
-                <span>URL & Web Domain</span>
+                <Globe size={14} />
+                <span>URL Security Scanner</span>
               </button>
-
               <button
                 type="button"
                 onClick={() => setActiveMode("email")}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-semibold transition flex items-center gap-2 cursor-pointer ${
-                  activeMode === "email"
-                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs"
-                    : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-800"
-                }`}
+                className={`btn-cg ${activeMode === "email" ? "primary" : ""}`}
               >
-                <Mail className="w-3.5 h-3.5 text-emerald-500" />
+                <Mail size={14} />
                 <span>Email Threat Analyzer</span>
               </button>
             </div>
 
-            {/* Email Vector Tab */}
             {activeMode === "email" && <EmailAnalyzerSection />}
 
-            {/* URL Vector Tab */}
             {activeMode === "url" && (
               <>
-                {/* Prominent URL Input Card */}
-                <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm">
-                  <CardHeader className="py-3.5 px-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
-                    <CardTitle className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                      Submit URL for Deep Security Analysis
-                    </CardTitle>
-                    <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
-                      Supports HTTP, HTTPS, registered domains, raw IP addresses, and Punycode hostnames.
-                    </CardDescription>
-                  </CardHeader>
+                {/* Search / Input Box Card */}
+                <div className="card-cg" style={{ marginBottom: 14 }}>
+                  <form 
+                    onSubmit={(e) => { e.preventDefault(); handleAnalyze(); }}
+                    className="urlbox-cg"
+                  >
+                    <div className="search-cg" style={{ height: 44, maxWidth: "none" }}>
+                      <Search size={16} />
+                      <input 
+                        value={inputUrl} 
+                        onChange={(e) => setInputUrl(e.target.value)} 
+                        placeholder="Enter URL to analyze (e.g. http://example.com/login)..."
+                        disabled={isAnalyzing}
+                      />
+                    </div>
+                    <button 
+                      type="submit"
+                      className="btn-cg primary"
+                      disabled={isAnalyzing || !inputUrl.trim()}
+                      style={{ height: 44, padding: "0 18px", fontSize: 12 }}
+                    >
+                      {isAnalyzing ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          <span>Analyzing URL...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Analyze URL</span>
+                          <ArrowRight size={14} />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                  <div style={{ padding: "0 16px 13px", fontSize: 10, color: "var(--muted)" }}>
+                    Supports HTTP, HTTPS, registered domains, raw IP addresses, and Punycode hostnames.
+                  </div>
+                </div>
 
-                  <CardContent className="p-5">
-                    {error && (
-                      <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-lg flex items-center gap-2 font-mono">
-                        <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-                        <span>{error}</span>
-                      </div>
-                    )}
-
-                    <form onSubmit={handleAnalyze} className="flex flex-col sm:flex-row gap-2.5">
-                      <div className="relative flex-1">
-                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3.5" />
-                        <Input
-                          value={inputUrl}
-                          onChange={(e) => {
-                            setInputUrl(e.target.value);
-                            if (scanState === "FAILED") {
-                              setScanState("IDLE");
-                              setError(null);
-                            }
-                          }}
-                          placeholder="https://example.com/login"
-                          className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-10 text-xs font-mono rounded-lg focus:ring-emerald-500"
-                          disabled={isAnalyzing || scanState === "VALIDATING" || scanState === "SCANNING"}
-                        />
-                      </div>
-                      <Button 
-                        type="submit" 
-                        disabled={isAnalyzing || scanState === "VALIDATING" || scanState === "SCANNING" || !inputUrl.trim()}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold text-xs h-10 px-5 rounded-lg flex items-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
-                      >
-                        {isAnalyzing || scanState === "VALIDATING" || scanState === "SCANNING" ? (
-                          <>
-                            <RotateCw className="w-4 h-4 animate-spin" />
-                            <span>Analyzing...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Zap className="w-4 h-4" />
-                            <span>Analyze URL</span>
-                          </>
-                        )}
-                      </Button>
-                    </form>
-                  </CardContent>
-                </Card>
-
-                {/* Progress UI */}
-                {(scanState === "VALIDATING" || scanState === "SCANNING" || scanState === "FAILED") && (
-                  <ScanProgress
-                    state={scanState}
-                    targetUrl={inputUrl.trim()}
-                    errorMessage={error}
-                    onRetry={() => {
-                      setScanState("IDLE");
-                      setError(null);
-                    }}
-                  />
+                {/* Progress Card during active scanning */}
+                {isAnalyzing && (
+                  <div className="card-cg" style={{ marginBottom: 14 }}>
+                    <div className="card-body-cg">
+                      <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 13, color: "var(--text)" }}>Analyzing URL...</h3>
+                      {[
+                        "URL normalization",
+                        "Google Safe Browsing",
+                        "VirusTotal",
+                        "URLhaus",
+                        "Local URL intelligence",
+                        "SSL/TLS analysis"
+                      ].map((x, i) => (
+                        <div key={x} style={{ padding: "10px 0", borderBottom: "1px solid var(--line)", fontSize: 11, display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ color: i < 2 ? "var(--green)" : "var(--blue)" }}>
+                            {i < 2 ? "✓" : "⟳"}
+                          </span>
+                          <span style={{ color: "var(--text)" }}>{x}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
-                {/* Analysis Results Display */}
-                {analysis && scanState === "COMPLETED" && !isAnalyzing && (
-                  <div className="space-y-6">
-                    {/* 1. Result Header: URL, Scan ID, Date, Action Controls */}
-                    <div className="p-4 sm:p-5 bg-white dark:bg-[#111827] border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm font-bold text-slate-900 dark:text-slate-100 truncate max-w-lg">
-                            {analysis.normalizedUrl}
-                          </span>
-                          <button
-                            onClick={copyUrl}
-                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer transition"
-                            title="Copy Normalized URL"
-                          >
-                            {copied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                {/* Error Banner */}
+                {error && (
+                  <div className="notice-cg" style={{ marginBottom: 14 }}>
+                    <AlertCircle size={14} style={{ verticalAlign: "middle", marginRight: 7 }} />
+                    {error}
+                  </div>
+                )}
+
+                {/* Result Sections */}
+                {analysis && !isAnalyzing && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    
+                    {/* Header Card */}
+                    <div className="card-cg">
+                      <div className="card-head-cg" style={{ flexWrap: "wrap", gap: 12 }}>
+                        <div>
+                          <strong style={{ fontSize: 13, color: "var(--text)", display: "flex", alignItems: "center", gap: 6 }}>
+                            <span>{analysis.normalizedUrl}</span>
+                            <button onClick={copyUrl} style={{ background: "none", border: "none", color: "var(--muted)", cursor: "pointer" }}>
+                              {copied ? <Check size={13} color="var(--green)" /> : <Copy size={13} />}
+                            </button>
+                          </strong>
+                          <div style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, fontFamily: "monospace" }}>
+                            Report ID: {analysis.reportId} · {analysis.timestamp}
+                          </div>
+                        </div>
+
+                        <div className="quick-cg">
+                          <button className="btn-cg" onClick={() => handleAnalyze()}>
+                            <RefreshCw size={13} /> 
+                            <span>Re-analyze</span>
+                          </button>
+                          {analysis.scanId && (
+                            <button 
+                              className="btn-cg"
+                              onClick={() => router.push(`/reports/create?scanId=${analysis.scanId}`)}
+                            >
+                              <FileText size={13} /> 
+                              <span>View Incident Report</span>
+                            </button>
+                          )}
+                          {analysis.scanId && (
+                            <button 
+                              className="btn-cg ai"
+                              onClick={() => router.push(`/assistant?scanId=${analysis.scanId}&url=${encodeURIComponent(analysis.normalizedUrl)}&riskScore=${analysis.riskScore}&riskLevel=${analysis.threatLevel}`)}
+                            >
+                              <Bot size={13} /> 
+                              <span>Ask AI</span>
+                            </button>
+                          )}
+                          <button className="btn-cg success" onClick={handleDownloadPdf}>
+                            <Download size={13} /> 
+                            <span>Download PDF</span>
                           </button>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] font-mono text-slate-500">
-                          <span>Scan ID: <strong className="text-slate-700 dark:text-slate-300">{analysis.reportId}</strong></span>
-                          <span>•</span>
-                          <span>{analysis.timestamp}</span>
-                        </div>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start md:justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAnalyze()}
-                          className="text-xs font-mono border-slate-200 dark:border-slate-800 h-8 px-3 rounded-lg flex items-center gap-1.5"
-                          title="Re-run security analysis on this URL"
-                        >
-                          <RotateCw className="w-3.5 h-3.5" /> Re-analyze
-                        </Button>
-
-                        {analysis.scanId && (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => {
-                                if (analysis.reportId && analysis.reportId.startsWith("CG-")) {
-                                  router.push(`/reports/${analysis.reportId}`);
-                                } else {
-                                  router.push(`/reports/create?scanId=${analysis.scanId}`);
-                                }
-                              }}
-                              className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 text-xs font-mono h-8 px-3 rounded-lg flex items-center gap-1.5"
-                            >
-                              <FileText className="w-3.5 h-3.5" /> View Incident Report
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => router.push(`/assistant?scanId=${analysis.scanId}`)}
-                              className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-xs font-mono h-8 px-3 rounded-lg flex items-center gap-1.5"
-                            >
-                              <Bot className="w-3.5 h-3.5" /> Ask AI
-                            </Button>
-                          </>
-                        )}
-
-                        <Button
-                          size="sm"
-                          onClick={handleDownloadPdf}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono h-8 px-3 rounded-lg flex items-center gap-1.5"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Download PDF
-                        </Button>
                       </div>
                     </div>
 
-                    {/* 2. Visual Focus: Risk Assessment Summary Card + Horizontal Risk Gauge */}
-                    <RiskSummarySection
-                      riskScore={analysis.riskScore}
-                      riskLevel={analysis.threatLevel}
-                      confidence={analysis.confidence}
-                      calculationMethod={analysis.calculationMethod}
-                      overrideTriggered={analysis.overrideTriggered}
-                      overrideReason={analysis.overrideReason}
-                      overrideType={analysis.overrideType}
-                      analysisStatus={analysis.analysisStatus}
-                      riskFactors={analysis.riskFactors}
-                    />
+                    {/* Risk Assessment & Threat Intelligence Grid */}
+                    <div className="grid-cg grid2-cg">
+                      <RiskSummarySection
+                        riskScore={analysis.riskScore}
+                        riskLevel={analysis.threatLevel}
+                        confidence={analysis.confidence}
+                        calculationMethod={analysis.calculationMethod}
+                        overrideTriggered={analysis.overrideTriggered}
+                        overrideReason={analysis.overrideReason}
+                        overrideType={analysis.overrideType}
+                        analysisStatus={analysis.analysisStatus}
+                        riskFactors={analysis.riskFactors}
+                      />
 
-                    {/* 3. Threat Intelligence Section: Safe Browsing, VirusTotal, URLhaus */}
-                    <ThreatIntelligenceCard
-                      safeBrowsing={analysis.safeBrowsing}
-                      virusTotal={analysis.virusTotal}
-                      urlhaus={analysis.urlhaus}
-                    />
+                      <ThreatIntelligenceCard
+                        safeBrowsing={analysis.safeBrowsing}
+                        virusTotal={analysis.virusTotal}
+                        urlhaus={analysis.urlhaus}
+                      />
+                    </div>
 
-                    {/* 4. Local URL Structure Analysis Section */}
-                    <UrlStructureCard
-                      intelligence={analysis.urlIntelligence}
-                      findings={analysis.findings}
-                    />
+                    {/* Structure, Connection, and AI Grid */}
+                    <div className="grid-cg grid3-cg">
+                      <UrlStructureCard
+                        intelligence={analysis.urlIntelligence}
+                        findings={analysis.findings}
+                      />
 
-                    {/* 5. Connection Security Section (SSL/TLS) */}
-                    <ConnectionSecurityCard
-                      ssl={analysis.ssl}
-                      sslAnalysis={analysis.sslAnalysis}
-                    />
+                      <ConnectionSecurityCard
+                        ssl={analysis.ssl}
+                        sslAnalysis={analysis.sslAnalysis}
+                      />
 
-                    {/* 6. Discovered Security Findings & Evidence List */}
+                      <AiAssessmentCard
+                        aiAnalysis={analysis.aiAnalysis}
+                        aiExplanation={analysis.aiExplanation}
+                        recommendedActions={analysis.recommendedActions}
+                        scanId={analysis.scanId}
+                        threatLevel={analysis.threatLevel}
+                        riskScore={analysis.riskScore}
+                      />
+                    </div>
+
+                    {/* Discovered Security Findings */}
                     <EvidenceFindingsCard
                       findings={analysis.findings}
                     />
 
-                    {/* 7. Gemini AI Security Assessment Card */}
-                    <AiAssessmentCard
-                      aiAnalysis={analysis.aiAnalysis}
-                      aiExplanation={analysis.aiExplanation}
-                      recommendedActions={analysis.recommendedActions}
-                      scanId={analysis.scanId}
-                      threatLevel={analysis.threatLevel}
-                      riskScore={analysis.riskScore}
-                    />
                   </div>
                 )}
               </>
             )}
+
           </main>
         </div>
       </div>

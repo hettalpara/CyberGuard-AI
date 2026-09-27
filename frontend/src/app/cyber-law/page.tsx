@@ -10,13 +10,10 @@ import {
   PhoneCall, 
   ExternalLink, 
   BookOpen, 
-  FileText,
   ChevronDown,
   ChevronUp,
   Search
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
@@ -98,247 +95,158 @@ export default function CyberLawPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col lg:flex-row bg-background">
+      <div className="app-cg">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="main-cg">
           <Header />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+          <main className="content-cg">
             
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            {/* Page Title */}
+            <div className="page-title-cg">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 bg-primary-blue/10 text-primary-blue font-mono font-bold text-[10px] rounded border border-primary-blue/20">
-                    STATUTORY DIRECTORY
-                  </span>
-                  <span className="text-[11px] font-mono text-text-secondary">
-                    Legal Frameworks & Law Enforcement Reporting
-                  </span>
-                </div>
-                <h1 className="text-2xl sm:text-3xl font-mono font-bold text-text-primary tracking-tight">
-                  Cyber Law & Incident Reporting
-                </h1>
-                <p className="text-text-secondary text-xs sm:text-sm mt-0.5 max-w-2xl">
-                  Authoritative statutory reference, electronic evidence admissibility protocols, and law enforcement escalation procedures.
-                </p>
+                <h1>Cyber Law Information</h1>
+                <p>Reference information for reporting and responding to cyber incidents.</p>
               </div>
-
-              <div className="flex items-center gap-2">
-                <Link href="/reports">
-                  <Button className="bg-primary-blue hover:bg-primary-blue/90 text-white text-xs px-4 h-9 font-mono font-bold rounded-lg cursor-pointer">
-                    View Incident Reports
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/reports" className="btn-cg primary">
+                View Reports
+              </Link>
             </div>
 
-            {/* Mandatory Legal Disclaimer Banner */}
-            <div className="p-4 rounded-lg bg-warning/10 border border-warning/30 flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-warning">
-                  Statutory Reference Notice & Legal Disclaimer
-                </h4>
-                <p className="text-xs text-text-primary leading-relaxed">
-                  The statutory summaries, legal provisions, and evidence preservation guidelines provided on CyberGuard AI are for informational and cybersecurity triage purposes only. They do not constitute formal legal counsel. In the event of a cyber incident, fraud, or extortion, victims should immediately file an official complaint at{" "}
-                  <a href="https://cybercrime.gov.in" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-primary-blue inline-flex items-center gap-0.5">
-                    cybercrime.gov.in <ExternalLink className="h-3 w-3" />
-                  </a>{" "}
-                  or dial the National Cyber Crime Helpline at <strong className="font-mono font-bold text-text-primary">1930</strong>. Always verify statutory provisions with official government gazettes or a qualified cyber advocate.
+            {/* Official Indian Reporting Notice from cyberguard-ai-ui */}
+            <div className="card-cg" style={{ marginBottom: 14 }}>
+              <div className="card-body-cg">
+                <h3 style={{ fontSize: 14, margin: "0 0 6px", color: "var(--text)" }}>
+                  Indian Cyber Crime Reporting
+                </h3>
+                <p style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.7, margin: "0 0 12px" }}>
+                  Use official government resources for current reporting procedures, legal provisions and emergency contacts. This page should be treated as general information and not as legal advice.
                 </p>
+                <div className="notice-cg">
+                  <AlertTriangle size={13} style={{ verticalAlign: "middle", marginRight: 7 }} />
+                  Verify current legal requirements and official reporting channels before taking action. In case of financial fraud, call <strong>1930</strong> immediately.
+                </div>
               </div>
             </div>
 
-            {/* Emergency Law Enforcement Channels */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="border-border bg-card p-4">
-                <div className="flex items-center gap-2 mb-2 text-primary-blue">
-                  <PhoneCall className="h-4 w-4" />
-                  <span className="text-xs font-mono font-bold uppercase">National Cyber Helpline</span>
-                </div>
-                <div className="text-xl font-mono font-bold text-text-primary">
-                  1930 (Toll-Free)
-                </div>
-                <p className="text-[11px] text-text-secondary mt-1">
-                  Immediate financial fraud reporting to freeze stolen funds within the Golden Hour.
-                </p>
-                <div className="mt-3 pt-2 border-t border-border">
-                  <span className="text-[10px] font-mono text-text-secondary">Operated by Indian Cyber Crime Coordination Centre (I4C)</span>
-                </div>
-              </Card>
-
-              <Card className="border-border bg-card p-4">
-                <div className="flex items-center gap-2 mb-2 text-primary-blue">
-                  <ShieldAlert className="h-4 w-4" />
-                  <span className="text-xs font-mono font-bold uppercase">National Portal</span>
-                </div>
-                <div className="text-xl font-mono font-bold text-text-primary truncate">
-                  cybercrime.gov.in
-                </div>
-                <p className="text-[11px] text-text-secondary mt-1">
-                  Official portal to register cyber crime complaints, FIRs, and financial fraud reports online.
-                </p>
-                <div className="mt-3 pt-2 border-t border-border">
-                  <a
-                    href="https://cybercrime.gov.in"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] font-mono text-primary-blue hover:underline inline-flex items-center gap-1"
-                  >
-                    Open official portal <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-              </Card>
-
-              <Card className="border-border bg-card p-4">
-                <div className="flex items-center gap-2 mb-2 text-primary-blue">
-                  <FileCheck2 className="h-4 w-4" />
-                  <span className="text-xs font-mono font-bold uppercase">CERT-In Emergency Desk</span>
-                </div>
-                <div className="text-xl font-mono font-bold text-text-primary">
-                  incident@cert-in.org.in
-                </div>
-                <p className="text-[11px] text-text-secondary mt-1">
-                  Mandatory reporting of cyber security incidents under CERT-In directives.
-                </p>
-                <div className="mt-3 pt-2 border-t border-border">
-                  <span className="text-[10px] font-mono text-text-secondary">Direct hotline: 1800-11-4949</span>
-                </div>
-              </Card>
-            </div>
-
-            {/* Statutory Reference Sections */}
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-text-primary">
-                    Applicable Statutory Provisions ({filteredSections.length})
-                  </h3>
-                  <p className="text-xs text-text-secondary">
-                    Information Technology Act, 2000, Bharatiya Sakshya Adhiniyam, and DPDP Act provisions.
+            {/* Emergency Channels Grid */}
+            <div className="grid-cg grid3-cg" style={{ marginBottom: 14 }}>
+              <div className="card-cg">
+                <div className="card-body-cg">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--blue)", marginBottom: 8 }}>
+                    <PhoneCall size={16} />
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>National Cyber Helpline</span>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", fontFamily: "monospace" }}>
+                    1930
+                  </div>
+                  <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, margin: 0 }}>
+                    Toll-free emergency reporting for immediate financial fraud freeze.
                   </p>
                 </div>
+              </div>
 
-                <div className="relative w-full sm:w-64">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-secondary pointer-events-none" />
+              <div className="card-cg">
+                <div className="card-body-cg">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--blue)", marginBottom: 8 }}>
+                    <ShieldAlert size={16} />
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>National Portal</span>
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", fontFamily: "monospace" }}>
+                    cybercrime.gov.in
+                  </div>
+                  <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, margin: 0 }}>
+                    Official portal for lodging cyber crime complaints online.
+                  </p>
+                </div>
+              </div>
+
+              <div className="card-cg">
+                <div className="card-body-cg">
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--blue)", marginBottom: 8 }}>
+                    <FileCheck2 size={16} />
+                    <span style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase" }}>CERT-In Desk</span>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: "var(--text)", fontFamily: "monospace" }}>
+                    incident@cert-in.org.in
+                  </div>
+                  <p style={{ fontSize: 10, color: "var(--muted)", marginTop: 4, margin: 0 }}>
+                    Incident response and security notifications.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Applicable Statutory Provisions */}
+            <div className="card-cg">
+              <div className="card-head-cg">
+                <div>
+                  <h3>Statutory Provisions</h3>
+                  <p>Information Technology Act & Bharatiya Sakshya Adhiniyam</p>
+                </div>
+
+                <div className="search-cg" style={{ width: 220, height: 32 }}>
+                  <Search size={14} />
                   <input
-                    type="text"
-                    placeholder="Search sections or offenses..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full h-8 pl-8 pr-3 text-xs bg-muted/60 border border-border rounded-md text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-1 focus:ring-primary-blue"
+                    placeholder="Search sections..."
                   />
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="card-body-cg" style={{ padding: 0 }}>
                 {filteredSections.map((item) => {
                   const isExpanded = expandedSection === item.section;
+
                   return (
-                    <Card 
-                      key={item.section}
-                      className="border-border bg-card shadow-xs transition-all overflow-hidden"
-                    >
-                      <button
-                        type="button"
+                    <div key={item.section} style={{ borderBottom: "1px solid var(--line)" }}>
+                      <div
                         onClick={() => setExpandedSection(isExpanded ? null : item.section)}
-                        className="w-full text-left p-4 flex items-center justify-between gap-4 cursor-pointer hover:bg-muted/30 transition-colors"
+                        className="finding-cg"
+                        style={{ padding: "13px 17px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between" }}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="px-2 py-0.5 rounded font-mono font-bold text-xs bg-primary-blue/10 text-primary-blue border border-primary-blue/20 shrink-0">
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <span className="badge-cg blue" style={{ fontFamily: "monospace" }}>
                             {item.section}
                           </span>
-                          <div className="min-w-0">
-                            <span className="font-semibold text-xs text-text-primary block truncate">
+                          <div>
+                            <strong style={{ fontSize: 12, display: "block", color: "var(--text)" }}>
                               {item.title}
-                            </span>
-                            <span className="text-[11px] text-text-secondary font-mono">
+                            </strong>
+                            <span style={{ fontSize: 10, color: "var(--muted)" }}>
                               {item.act}
                             </span>
                           </div>
                         </div>
 
-                        <div className="shrink-0 text-text-secondary">
-                          {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        <div style={{ color: "var(--muted)" }}>
+                          {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                         </div>
-                      </button>
+                      </div>
 
                       {isExpanded && (
-                        <div className="px-4 pb-4 pt-1 border-t border-border space-y-3 bg-card-elevated/20 text-xs">
-                          <div>
-                            <span className="text-[10px] font-mono uppercase text-text-secondary font-semibold block">
-                              Statutory Scope & Description
-                            </span>
-                            <p className="text-text-primary mt-0.5 leading-relaxed">
-                              {item.description}
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                            <div className="p-2.5 rounded bg-muted/50 border border-border">
-                              <span className="text-[10px] font-mono uppercase text-warning font-semibold block">
-                                Penalties / Liabilities
-                              </span>
-                              <p className="text-text-primary font-mono text-[11px] mt-0.5">
-                                {item.penalties}
-                              </p>
+                        <div style={{ padding: "14px 17px", background: "var(--panel-2)", borderTop: "1px solid var(--line)" }}>
+                          <p style={{ fontSize: 11, color: "var(--text)", lineHeight: 1.6, margin: "0 0 10px" }}>
+                            {item.description}
+                          </p>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 10 }}>
+                            <div style={{ padding: "8px 12px", background: "var(--panel)", borderRadius: 7, border: "1px solid var(--line)" }}>
+                              <strong style={{ color: "var(--amber)", display: "block", marginBottom: 3 }}>Penalties</strong>
+                              <span style={{ color: "var(--text)" }}>{item.penalties}</span>
                             </div>
-
-                            <div className="p-2.5 rounded bg-muted/50 border border-border">
-                              <span className="text-[10px] font-mono uppercase text-primary-blue font-semibold block">
-                                CyberGuard AI Platform Relevance
-                              </span>
-                              <p className="text-text-primary text-[11px] mt-0.5">
-                                {item.relevance}
-                              </p>
+                            <div style={{ padding: "8px 12px", background: "var(--panel)", borderRadius: 7, border: "1px solid var(--line)" }}>
+                              <strong style={{ color: "var(--blue)", display: "block", marginBottom: 3 }}>Platform Context</strong>
+                              <span style={{ color: "var(--text)" }}>{item.relevance}</span>
                             </div>
                           </div>
                         </div>
                       )}
-                    </Card>
+                    </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* Evidence Preservation Checklist */}
-            <Card className="border-border bg-card p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary-blue" />
-                <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-text-primary">
-                  Forensic Chain of Custody & Evidence Preservation Protocol
-                </h3>
-              </div>
-              <p className="text-xs text-text-secondary">
-                To ensure digital evidence collected from CyberGuard AI is legally admissible under Section 65B:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div className="p-3 rounded-lg border border-border bg-card-elevated/40 space-y-1">
-                  <span className="font-semibold text-text-primary block font-mono">1. Preserve Original Artifacts</span>
-                  <p className="text-text-secondary text-[11px]">
-                    Do not modify or re-encode suspect URLs, headers, or downloaded payloads. Export raw incident records immediately.
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg border border-border bg-card-elevated/40 space-y-1">
-                  <span className="font-semibold text-text-primary block font-mono">2. Compute Cryptographic SHA-256 Hashes</span>
-                  <p className="text-text-secondary text-[11px]">
-                    Use the Evidence tool to calculate and log the NIST-standard SHA-256 hash immediately upon artifact acquisition.
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg border border-border bg-card-elevated/40 space-y-1">
-                  <span className="font-semibold text-text-primary block font-mono">3. Document Timestamps & Network Route</span>
-                  <p className="text-text-secondary text-[11px]">
-                    Ensure local machine time is synchronized via NTP. Include IP addresses, TLS handshake certificates, and DNS records.
-                  </p>
-                </div>
-                <div className="p-3 rounded-lg border border-border bg-card-elevated/40 space-y-1">
-                  <span className="font-semibold text-text-primary block font-mono">4. Export Signed PDF Incident Report</span>
-                  <p className="text-text-secondary text-[11px]">
-                    Download the official CyberGuard AI incident report PDF from the Reports section to submit alongside the formal police complaint.
-                  </p>
-                </div>
-              </div>
-            </Card>
           </main>
         </div>
       </div>
