@@ -507,7 +507,12 @@ export async function explainScanById(scanId: string, userId: string): Promise<A
       sslAnalysis: scan.sslAnalysis,
       urlIntelligence: scan.urlIntelligence,
       safeBrowsing: scan.safeBrowsing,
-      urlhaus: scan.urlhaus,
+      urlhaus: scan.urlhaus
+        ? {
+            checked: scan.urlhaus.available && scan.urlhaus.status !== "UNAVAILABLE",
+            ...scan.urlhaus,
+          }
+        : undefined,
       virusTotal: scan.virusTotal,
       riskReasons: scan.risk?.reasons,
     },

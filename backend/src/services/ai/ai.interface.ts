@@ -58,12 +58,16 @@ export interface SecurityAnalysisInput {
       reason?: string;
     };
     urlhaus?: {
-      checked: boolean;
+      checked?: boolean;
       available?: boolean;
       status?: string;
       match: boolean;
       threatType?: string;
       tags?: string[];
+      confidence?: number;
+      reason?: string;
+      checkedAt?: string;
+      error?: string;
     };
     virusTotal?: {
       checked: boolean;
