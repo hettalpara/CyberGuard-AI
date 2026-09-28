@@ -2,6 +2,7 @@ import { apiClient } from "@/lib/api-client";
 
 export interface ScanUrlPayload {
   url: string;
+  skipAi?: boolean;
 }
 
 export interface RiskFactorData {
@@ -19,11 +20,14 @@ export interface RiskFactorData {
 export interface AIAnalysisData {
   available: boolean;
   summary: string;
+  whatItMeans?: string;
+  whyItMatters?: string;
   threatType?: string;
   severity?: string;
   explanation?: string;
   keyIndicators?: string[];
   recommendedActions?: string[];
+  userSafetyMessage?: string;
   confidenceNote?: string;
   generatedAt?: string;
   model?: string;
@@ -304,4 +308,7 @@ export const analyzerService = {
 
   getDashboardStats: () =>
     apiClient.get<DashboardStatsResponse>("/analyzer/stats"),
+
+  explainScan: (id: string) =>
+    apiClient.post<{ success: boolean; aiAnalysis: AIAnalysisData }>(`/analyzer/${id}/explain`),
 };

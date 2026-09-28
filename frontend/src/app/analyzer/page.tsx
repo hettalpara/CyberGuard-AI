@@ -82,6 +82,9 @@ export interface DetailedAnalysis {
   findings: SecurityFindingData[];
   riskReasons: string[];
   aiAnalysis?: AIAnalysisData | null;
+  whatItMeans?: string;
+  whyItMatters?: string;
+  userSafetyMessage?: string;
   aiExplanation?: string;
   recommendedActions: string[];
   safeBrowsing: {
@@ -320,11 +323,14 @@ function normalizeAnalysisResponse(data: any, fallbackUrl: string): DetailedAnal
     aiAnalysis = {
       available: scan.aiAnalysis.available !== false,
       summary: String(scan.aiAnalysis.summary || ""),
+      whatItMeans: scan.aiAnalysis.whatItMeans ? String(scan.aiAnalysis.whatItMeans) : undefined,
+      whyItMatters: scan.aiAnalysis.whyItMatters ? String(scan.aiAnalysis.whyItMatters) : undefined,
       threatType: scan.aiAnalysis.threatType ? String(scan.aiAnalysis.threatType) : undefined,
       severity: scan.aiAnalysis.severity ? String(scan.aiAnalysis.severity) : undefined,
       explanation: scan.aiAnalysis.explanation ? String(scan.aiAnalysis.explanation) : undefined,
       keyIndicators: Array.isArray(scan.aiAnalysis.keyIndicators) ? scan.aiAnalysis.keyIndicators.map(String) : [],
       recommendedActions: Array.isArray(scan.aiAnalysis.recommendedActions) ? scan.aiAnalysis.recommendedActions.map(String) : [],
+      userSafetyMessage: scan.aiAnalysis.userSafetyMessage ? String(scan.aiAnalysis.userSafetyMessage) : undefined,
       confidenceNote: scan.aiAnalysis.confidenceNote ? String(scan.aiAnalysis.confidenceNote) : undefined,
       generatedAt: scan.aiAnalysis.generatedAt ? String(scan.aiAnalysis.generatedAt) : undefined,
       model: scan.aiAnalysis.model ? String(scan.aiAnalysis.model) : undefined,
@@ -383,7 +389,10 @@ function normalizeAnalysisResponse(data: any, fallbackUrl: string): DetailedAnal
     findings,
     riskReasons: Array.isArray(scan.risk?.reasons) ? scan.risk.reasons.map(String) : [],
     aiAnalysis,
-    aiExplanation: scan.aiExplanation ? String(scan.aiExplanation) : scan.summary ? String(scan.summary) : undefined,
+    whatItMeans: aiAnalysis?.whatItMeans,
+    whyItMatters: aiAnalysis?.whyItMatters,
+    userSafetyMessage: aiAnalysis?.userSafetyMessage,
+    aiExplanation: aiAnalysis?.whatItMeans || (scan.aiExplanation ? String(scan.aiExplanation) : scan.summary ? String(scan.summary) : undefined),
     recommendedActions,
     timestamp: formattedTimestamp,
     reportId,
@@ -401,6 +410,10 @@ export default function AnalyzerPage() {
   const [analysisResult, setAnalysisResult] = useState<DetailedAnalysis | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Gemini AI Analysis automated lifecycle states
+  const [isAiExplaining, setIsAiExplaining] = useState(false);
+  const [aiError, setAiError] = useState(false);
 
   // Race condition and concurrency control
   const activeRequestIdRef = useRef<number>(0);
@@ -430,9 +443,11 @@ export default function AnalyzerPage() {
     abortControllerRef.current = new AbortController();
     const currentRequestId = ++activeRequestIdRef.current;
 
-    // 2. Safely reset all previous analysis state before starting new scan
+    // 2. Safely reset all previous analysis state before starting new scan (guarantees no stale results)
     setAnalysisResult(null);
     setErrorMessage(null);
+    setIsAiExplaining(false);
+    setAiError(false);
     setAnalysisState("loading");
 
     try {
@@ -440,7 +455,8 @@ export default function AnalyzerPage() {
       await new Promise((resolve) => setTimeout(resolve, 300));
       if (currentRequestId !== activeRequestIdRef.current) return;
 
-      const response = await analyzerService.scanUrl({ url: targetUrl });
+      // Run deterministic analysis first (fast & reliable)
+      const response = await analyzerService.scanUrl({ url: targetUrl, skipAi: true });
       if (currentRequestId !== activeRequestIdRef.current) return;
 
       const rawData = response.data;
@@ -452,9 +468,48 @@ export default function AnalyzerPage() {
       const normalized = normalizeAnalysisResponse(rawData, targetUrl);
       if (currentRequestId !== activeRequestIdRef.current) return;
 
-      // 4. Update authoritative result and transition to success
+      // 4. Update authoritative result and transition to success immediately
       setAnalysisResult(normalized);
       setAnalysisState("success");
+
+      // 5. Automatically trigger Gemini AI Analysis in background
+      if (normalized.scanId) {
+        setIsAiExplaining(true);
+        setAiError(false);
+        try {
+          const explainRes = await analyzerService.explainScan(normalized.scanId);
+          if (currentRequestId !== activeRequestIdRef.current) return;
+          if (explainRes.data?.success && explainRes.data?.aiAnalysis) {
+            const aiData = explainRes.data.aiAnalysis;
+            setAnalysisResult((prev) => {
+              if (!prev || prev.scanId !== normalized.scanId) return prev;
+              return {
+                ...prev,
+                aiAnalysis: aiData,
+                whatItMeans: aiData.whatItMeans,
+                whyItMatters: aiData.whyItMatters,
+                userSafetyMessage: aiData.userSafetyMessage,
+                aiExplanation: aiData.whatItMeans || aiData.explanation || aiData.summary,
+                recommendedActions:
+                  aiData.recommendedActions && aiData.recommendedActions.length > 0
+                    ? aiData.recommendedActions
+                    : prev.recommendedActions,
+              };
+            });
+            setAiError(false);
+          } else {
+            setAiError(true);
+          }
+        } catch (aiErr) {
+          if (currentRequestId !== activeRequestIdRef.current) return;
+          console.warn("[Gemini Auto-Explanation Error]:", aiErr);
+          setAiError(true);
+        } finally {
+          if (currentRequestId === activeRequestIdRef.current) {
+            setIsAiExplaining(false);
+          }
+        }
+      }
     } catch (err: any) {
       if (currentRequestId !== activeRequestIdRef.current) return;
       console.error("[Analyzer Scan Error]:", err);
@@ -492,6 +547,51 @@ export default function AnalyzerPage() {
       console.error("[PDF Generation Error]:", pdfErr);
       alert("Incident PDF could not be generated. Technical details logged to console.");
     }
+  };
+
+  const handleRetryAi = async () => {
+    if (!analysisResult?.scanId || isAiExplaining) return;
+    setIsAiExplaining(true);
+    setAiError(false);
+    try {
+      const explainRes = await analyzerService.explainScan(analysisResult.scanId);
+      if (explainRes.data?.success && explainRes.data?.aiAnalysis) {
+        const aiData = explainRes.data.aiAnalysis;
+        setAnalysisResult((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            aiAnalysis: aiData,
+            whatItMeans: aiData.whatItMeans,
+            whyItMatters: aiData.whyItMatters,
+            userSafetyMessage: aiData.userSafetyMessage,
+            aiExplanation: aiData.whatItMeans || aiData.explanation || aiData.summary,
+            recommendedActions:
+              aiData.recommendedActions && aiData.recommendedActions.length > 0
+                ? aiData.recommendedActions
+                : prev.recommendedActions,
+          };
+        });
+        setAiError(false);
+      } else {
+        setAiError(true);
+      }
+    } catch (aiErr) {
+      console.warn("[Gemini Retry Error]:", aiErr);
+      setAiError(true);
+    } finally {
+      setIsAiExplaining(false);
+    }
+  };
+
+  const handleAskAi = () => {
+    if (!analysisResult) return;
+    const query = new URLSearchParams();
+    if (analysisResult.scanId) query.set("scanId", analysisResult.scanId);
+    if (analysisResult.normalizedUrl) query.set("url", analysisResult.normalizedUrl);
+    if (analysisResult.riskScore !== null) query.set("riskScore", String(analysisResult.riskScore));
+    if (analysisResult.threatLevel) query.set("riskLevel", analysisResult.threatLevel);
+    router.push(`/assistant?${query.toString()}`);
   };
 
   const copyUrl = () => {
@@ -671,7 +771,7 @@ export default function AnalyzerPage() {
                             {analysisResult.scanId && (
                               <button 
                                 className="btn-cg ai"
-                                onClick={() => router.push(`/assistant?scanId=${analysisResult.scanId}&url=${encodeURIComponent(analysisResult.normalizedUrl)}&riskScore=${analysisResult.riskScore}&riskLevel=${analysisResult.threatLevel}`)}
+                                onClick={handleAskAi}
                               >
                                 <Bot size={13} /> 
                                 <span>Ask AI</span>
@@ -706,8 +806,24 @@ export default function AnalyzerPage() {
                         />
                       </div>
 
-                      {/* Structure, Connection, and AI Grid */}
-                      <div className="grid-cg grid3-cg">
+                      {/* Dedicated Gemini AI Analysis Section */}
+                      <AiAssessmentCard
+                        aiAnalysis={analysisResult.aiAnalysis}
+                        aiExplanation={analysisResult.aiExplanation}
+                        recommendedActions={analysisResult.recommendedActions}
+                        scanId={analysisResult.scanId}
+                        threatLevel={analysisResult.threatLevel}
+                        riskScore={analysisResult.riskScore}
+                        confidence={analysisResult.confidence}
+                        url={analysisResult.normalizedUrl}
+                        isLoading={isAiExplaining}
+                        isError={aiError}
+                        onRetry={handleRetryAi}
+                        onAskAi={handleAskAi}
+                      />
+
+                      {/* Technical Deep Dive: Structure and SSL/TLS Connection Grid */}
+                      <div className="grid-cg grid2-cg">
                         <UrlStructureCard
                           intelligence={analysisResult.urlIntelligence}
                           findings={analysisResult.findings}
@@ -716,15 +832,6 @@ export default function AnalyzerPage() {
                         <ConnectionSecurityCard
                           ssl={analysisResult.ssl}
                           sslAnalysis={analysisResult.sslAnalysis}
-                        />
-
-                        <AiAssessmentCard
-                          aiAnalysis={analysisResult.aiAnalysis}
-                          aiExplanation={analysisResult.aiExplanation}
-                          recommendedActions={analysisResult.recommendedActions}
-                          scanId={analysisResult.scanId}
-                          threatLevel={analysisResult.threatLevel}
-                          riskScore={analysisResult.riskScore}
                         />
                       </div>
 

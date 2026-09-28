@@ -138,53 +138,61 @@ export class GeminiProvider implements IAIProvider {
       };
     }
 
-    // Defensive system instruction — Phase 6 §3 strict authority clause
-    const systemInstruction = `You are CyberGuard AI, a defensive cybersecurity assistant.
-Your job is to explain security analysis results to users in clear and understandable language.
+    // Defensive system instruction — Normal human explanation layer
+    const systemInstruction = `You are CyberGuard AI, a cybersecurity explanation assistant.
+Explain the results of a URL security analysis to a normal internet user.
 
-The risk score and risk level are authoritative values calculated by the CyberGuard deterministic Risk Engine.
+CRITICAL INSTRUCTIONS:
+1. DO NOT calculate or change the risk score, risk level, or confidence.
+   The deterministic security engine has already calculated those authoritative values.
+   Risk Score: ${input.riskScore !== null ? input.riskScore : "INCONCLUSIVE"}
+   Risk Level: ${input.riskLevel}
+   Confidence: ${input.confidence}%
+   Your job is strictly to EXPLAIN what was found.
 
-Do not recalculate them.
-Do not change them.
-Do not infer a different severity.
+2. NORMAL HUMAN LANGUAGE:
+   - Explain technical cybersecurity findings using simple language that a regular person can easily understand.
+   - Do NOT use overly technical jargon.
+     Avoid: "The hostname contains IDN-encoded Unicode labels susceptible to homograph-based impersonation vectors."
+     Prefer: "The website uses a Punycode domain name. This can sometimes be used to create a fake domain that looks similar to a real one."
+     Avoid: "TLS certificate validation failed."
+     Prefer: "The website's HTTPS security certificate could not be properly verified."
+   - Be concise, practical, and reassuring.
 
-Explain the supplied result using the supplied evidence.
+3. DO NOT OVERSTATE RESULTS:
+   - Distinguish carefully between:
+     * Confirmed malicious threats (e.g. Google Safe Browsing or URLhaus detected malware/phishing)
+     * Suspicious signals (e.g. multiple engines flagged or newly observed anomaly)
+     * Potential risks / hygiene issues (e.g. Punycode hostname, missing HTTPS, self-signed certificate)
+     * No known threats detected
+   - Do NOT say "This website is definitely a scam" when the evidence only indicates a Punycode hostname or missing SSL.
+   - A clean result does not guarantee that a URL is completely safe. Always mention this realistically.
 
-Additional rules:
-- Do not invent threat intelligence.
-- Do not claim a URL is malicious unless the supplied evidence supports it.
-- Do not treat unavailable APIs as safe.
-- Do not invent certificate information.
-- Do not invent VirusTotal detections.
-- Do not invent Google Safe Browsing results.
-- Do not invent URLhaus results.
-- Do not expose API keys.
-- If evidence is unavailable, clearly state that it was unavailable.
-- Never claim Google Safe Browsing or URLhaus confirmed a URL is safe if either service was unavailable, errored, or not configured.
-- Provide practical defensive recommendations.
-- Distinguish between CONFIRMED threats (e.g. Google Safe Browsing detected MALWARE/SOCIAL_ENGINEERING, URLhaus confirmed malware download, or VirusTotal high consensus) and INDICATIONS (e.g. raw IP, punycode, or missing SSL).
-- Never provide instructions for: credential theft, malware development, phishing attacks, bypassing security systems, unauthorized access, exploiting systems, stealing accounts, evading detection.
-- For potentially harmful requests, provide safe defensive alternatives.
-- Give practical defensive recommendations.
+4. CONSISTENCY WITH RISK LEVEL:
+   - If Risk Level is MODERATE, explain: "This URL has a moderate security risk..."
+   - If Risk Level is SAFE, explain: "No immediate threats were identified for this URL..."
+   - If Risk Level is HIGH or CRITICAL, explain the detected threat clearly.
+   - Never contradict the authoritative risk level.
 
-You must respond ONLY with a valid JSON object matching this exact structure:
-{
-  "summary": "Concise 1-2 sentence overview of the security posture.",
-  "threatType": "Phishing | Malware | Suspicious Domain | Insecure Website | Benign / Clean | Unknown",
-  "severity": "${input.riskLevel}",
-  "explanation": "Detailed, user-friendly defensive explanation of what was detected and why this URL carries this risk level.",
-  "keyIndicators": [
-    "Specific indicator 1 based only on provided evidence",
-    "Specific indicator 2 based only on provided evidence"
-  ],
-  "recommendedActions": [
-    "Actionable step 1 for user safety",
-    "Actionable step 2 for user safety"
-  ],
-  "confidenceNote": "Note explaining the level of certainty given the available signals."
-}`;
+5. RESPONSE FORMAT:
+   You must respond ONLY with a valid JSON object matching this exact structure:
+   {
+     "summary": "Concise 1-2 sentence overview in plain English.",
+     "whatItMeans": "Simple explanation of what was found and what it means for everyday web browsing.",
+     "whyItMatters": "Why these specific findings matter to the user's security and privacy.",
+     "keyIndicators": [
+       "Clear indicator bullet 1 in simple terms",
+       "Clear indicator bullet 2 in simple terms"
+     ],
+     "recommendedActions": [
+       "Actionable safety recommendation 1",
+       "Actionable safety recommendation 2",
+       "Actionable safety recommendation 3"
+     ],
+     "userSafetyMessage": "Practical safety reminder (e.g. clean results don't guarantee 100% safety, or avoid entering passwords)."
+   }`;
 
-    // Build structured prompt with clear field-by-field evidence (Phase 6 §4)
+    // Build structured prompt with clear field-by-field evidence
     const evidenceSections: string[] = [];
     evidenceSections.push(`URL:\n${input.url}`);
     evidenceSections.push(`Risk Score:\n${input.riskScore !== null ? input.riskScore : "INCONCLUSIVE (null)"}`);
@@ -344,9 +352,12 @@ You must respond ONLY with a valid JSON object matching this exact structure:
       if (!parsed.summary || typeof parsed.summary !== "string") {
         throw new Error("Missing or invalid 'summary' field");
       }
-      if (!parsed.explanation || typeof parsed.explanation !== "string") {
-        throw new Error("Missing or invalid 'explanation' field");
-      }
+
+      const whatItMeans = typeof parsed.whatItMeans === "string" ? parsed.whatItMeans.trim() : parsed.summary;
+      const whyItMatters = typeof parsed.whyItMatters === "string" ? parsed.whyItMatters.trim() : "";
+      const userSafetyMessage = typeof parsed.userSafetyMessage === "string" 
+        ? parsed.userSafetyMessage.trim() 
+        : "A clean result does not guarantee that a URL is completely safe. Always verify before sharing sensitive info.";
 
       const keyIndicators = Array.isArray(parsed.keyIndicators)
         ? parsed.keyIndicators.filter((k: unknown) => typeof k === "string" && k.trim().length > 0)
@@ -356,17 +367,26 @@ You must respond ONLY with a valid JSON object matching this exact structure:
         ? parsed.recommendedActions.filter((a: unknown) => typeof a === "string" && a.trim().length > 0)
         : [];
 
+      const isSafe = input.riskLevel === "SAFE";
+
       return {
         available: true,
         summary: parsed.summary.trim(),
-        threatType: typeof parsed.threatType === "string" ? parsed.threatType.trim() : "Security Assessment",
-        severity: typeof parsed.severity === "string" ? parsed.severity.trim() : input.riskLevel,
-        explanation: parsed.explanation.trim(),
+        whatItMeans,
+        whyItMatters,
+        threatType: typeof parsed.threatType === "string" ? parsed.threatType.trim() : isSafe ? "Benign / Clean" : "Security Assessment",
+        severity: input.riskLevel, // strictly maintain input.riskLevel as authoritative
+        explanation: whatItMeans, // backwards compatibility
         keyIndicators: keyIndicators.length > 0 ? keyIndicators : ["Analysis based on verified security feeds"],
         recommendedActions:
           recommendedActions.length > 0
             ? recommendedActions
-            : ["Verify address bar before interacting", "Do not share sensitive credentials"],
+            : [
+                "Avoid entering passwords or personal information unless verified.",
+                "Verify the domain before opening or interacting with the website.",
+                "Prefer official websites and HTTPS connections."
+              ],
+        userSafetyMessage,
         confidenceNote:
           typeof parsed.confidenceNote === "string"
             ? parsed.confidenceNote.trim()
@@ -376,10 +396,36 @@ You must respond ONLY with a valid JSON object matching this exact structure:
       };
     } catch (parseErr: any) {
       console.warn(`[GEMINI] Failed to parse structured response: ${parseErr.message}`);
+      // Fallback explanation if Gemini returns invalid JSON
+      const isSafe = input.riskLevel === "SAFE";
       return {
-        available: false,
-        summary: "The security analysis was completed, but the AI explanation is temporarily unavailable.",
-        error: "AI analysis could not be generated.",
+        available: true,
+        summary: isSafe
+          ? "No known security threats were detected for this URL across active security providers."
+          : `This URL has a ${input.riskLevel.toLowerCase()} security risk based on automated indicators.`,
+        whatItMeans: isSafe
+          ? "The domain was not found on active threat blacklists and basic security checks passed."
+          : "Automated analysis identified risk signals such as domain heuristics or unencrypted connection.",
+        whyItMatters: isSafe
+          ? "While no immediate threats are known, a clean result does not guarantee complete safety."
+          : "Insecure or suspicious domains can expose your private data or be used for spoofing.",
+        keyIndicators: input.factors && input.factors.length > 0
+          ? input.factors.filter((f) => f.status === "DETECTED" || (f.score && f.score > 0)).map((f) => f.reason || f.name)
+          : ["Multi-source threat intelligence inspection"],
+        recommendedActions: [
+          "Avoid entering passwords or personal information unless verified.",
+          "Verify the domain before opening the website.",
+          "Prefer official websites and HTTPS connections."
+        ],
+        userSafetyMessage: "A clean result does not guarantee that a URL is completely safe. Always verify before sharing sensitive info.",
+        threatType: isSafe ? "Benign / Clean" : "Suspicious Activity",
+        severity: input.riskLevel,
+        explanation: isSafe
+          ? "The security providers did not currently identify this URL as malicious."
+          : `The security engine identified risk factors resulting in a ${input.riskLevel.toLowerCase()} risk rating.`,
+        confidenceNote: `Confidence level of ${input.confidence}% based on verified threat intelligence.`,
+        generatedAt: new Date(),
+        model: "CyberGuard Fallback Explainer",
       };
     }
   }
@@ -437,10 +483,14 @@ Risk Score: ${input.context.riskScore !== null && input.context.riskScore !== un
 Risk Level: ${input.context.riskLevel || "N/A"}
 Confidence: ${input.context.confidence !== undefined ? `${input.context.confidence}%` : "N/A"}
 AI Summary: ${input.context.aiAnalysis?.summary || "N/A"}
-AI Explanation: ${input.context.aiAnalysis?.explanation || "N/A"}
+What It Means: ${input.context.aiAnalysis?.whatItMeans || input.context.aiAnalysis?.explanation || "N/A"}
+Why It Matters: ${input.context.aiAnalysis?.whyItMatters || "N/A"}
 Key Indicators: ${JSON.stringify(input.context.aiAnalysis?.keyIndicators || [])}
+Recommended Actions: ${JSON.stringify(input.context.aiAnalysis?.recommendedActions || [])}
+Safety Note: ${input.context.aiAnalysis?.userSafetyMessage || "N/A"}
+Security Evidence & Provider Findings: ${JSON.stringify(input.context.securityEvidence || {}, null, 2)}
 Risk Factors: ${JSON.stringify(input.context.factors || [])}
-Note: When the user asks about "this URL", "my scan", or "why is it risky", explain using the above verified evidence without altering the risk rating.`;
+Note: When the user asks questions such as "Why is this URL risky?", "Is it safe to enter my password?", "What does Punycode mean?", "What should I do now?", or "Why did VirusTotal find nothing?", answer directly and accurately using the above verified evidence without altering the risk rating or recalculating the score.`;
     }
 
     // Build Gemini contents array with system instruction and conversation history

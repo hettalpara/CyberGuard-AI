@@ -236,18 +236,27 @@ export default function AiAssistantPage() {
                 </div>
 
                 {/* Prompt Suggestions */}
-                <div className="quick-cg" style={{ marginBottom: 12 }}>
-                  {[
-                    "How do I report a phishing URL to authorities?",
-                    "What should I do if I entered banking credentials?",
-                    "Explain what Punycode domain spoofing is."
-                  ].map((s) => (
+                <div className="quick-cg" style={{ marginBottom: 12, flexWrap: "wrap", gap: 6 }}>
+                  {(activeScan
+                    ? [
+                        "Why is this URL risky?",
+                        "Is it safe to enter my password?",
+                        "What does Punycode mean?",
+                        "What should I do now?",
+                        "Why did VirusTotal find nothing?"
+                      ]
+                    : [
+                        "How do I report a phishing URL to authorities?",
+                        "What should I do if I entered banking credentials?",
+                        "Explain what Punycode domain spoofing is."
+                      ]
+                  ).map((s) => (
                     <button
                       key={s}
                       onClick={() => handleSend(s)}
                       disabled={isTyping}
                       className="btn-cg"
-                      style={{ fontSize: 10, padding: "5px 9px" }}
+                      style={{ fontSize: 11, padding: "5px 10px" }}
                     >
                       {s}
                     </button>

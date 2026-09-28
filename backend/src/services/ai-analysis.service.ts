@@ -30,28 +30,31 @@ export function getActiveAIProvider(): IAIProvider {
  * before sending to external AI models.
  */
 export function sanitizeUrlForAI(rawUrl: string): string {
+  if (!rawUrl || typeof rawUrl !== "string") return "";
+
+  const sensitiveKeys = [
+    "password",
+    "token",
+    "access_token",
+    "secret",
+    "session",
+    "sessionid",
+    "sess",
+    "jwt",
+    "apikey",
+    "api_key",
+    "key",
+    "credential",
+    "credentials",
+    "auth",
+    "pwd",
+    "code",
+    "bearer",
+  ];
+
+  // Primary URL object sanitization
   try {
     const urlObj = new URL(rawUrl.startsWith("http") ? rawUrl : `https://${rawUrl}`);
-    const sensitiveKeys = [
-      "password",
-      "token",
-      "access_token",
-      "secret",
-      "session",
-      "sessionid",
-      "sess",
-      "jwt",
-      "apikey",
-      "api_key",
-      "key",
-      "credential",
-      "credentials",
-      "auth",
-      "pwd",
-      "code",
-      "bearer",
-    ];
-
     const searchParams = new URLSearchParams(urlObj.search);
     let mutated = false;
 
@@ -66,9 +69,15 @@ export function sanitizeUrlForAI(rawUrl: string): string {
       urlObj.search = searchParams.toString();
       return urlObj.toString().replace(/%5BREDACTED%5D/gi, "[REDACTED]");
     }
-    return rawUrl;
   } catch {
-    // If URL parsing fails, return raw string without error
+    // Falls through to regex-based fallback below
+  }
+
+  // Regex fallback: ensures invalid domains or tricky Punycode parameters are also safely redacted
+  try {
+    const regex = new RegExp(`([?&](?:${sensitiveKeys.join("|")})=)[^&#\\s]*`, "gi");
+    return rawUrl.replace(regex, (_match, p1) => `${p1}[REDACTED]`);
+  } catch {
     return rawUrl;
   }
 }

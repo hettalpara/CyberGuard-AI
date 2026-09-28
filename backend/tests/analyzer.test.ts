@@ -183,4 +183,86 @@ describe("Analyzer Orchestrator Service (performUrlAnalysis)", () => {
     // AI failure triggers fallback explanation without aborting
     expect(savedPayload.aiAnalysis.available).toBe(false);
   });
+
+  it("redacts sensitive query parameters before passing URL to AI", () => {
+    const rawWithToken = "https://example.com/reset?token=SECRET123&password=myPass&user=john";
+    const sanitized = aiService.sanitizeUrlForAI(rawWithToken);
+
+    expect(sanitized).toContain("token=[REDACTED]");
+    expect(sanitized).toContain("password=[REDACTED]");
+    expect(sanitized).toContain("user=john");
+    expect(sanitized).not.toContain("SECRET123");
+    expect(sanitized).not.toContain("myPass");
+  });
+
+  it("explainScanById generates explanation without altering deterministic risk score or level", async () => {
+    const mockScanId = new Types.ObjectId().toString();
+    const fakeScan = {
+      _id: new Types.ObjectId(mockScanId),
+      userId: new Types.ObjectId(mockUserId),
+      url: "http://xn--paypa1-9za.example/login?token=SECRET_AUTH",
+      normalizedUrl: "http://xn--paypa1-9za.example/login?token=SECRET_AUTH",
+      domain: "xn--paypa1-9za.example",
+      riskScore: 44,
+      riskLevel: "MODERATE",
+      confidence: 80,
+      riskCalculationVersion: "2.0",
+      risk: {
+        score: 44,
+        level: "MODERATE",
+        confidence: 80,
+        factors: [
+          { name: "Punycode Hostname", score: 35, impact: "MODERATE", status: "DETECTED", reason: "Punycode format" },
+        ],
+        reasons: ["Punycode format detected", "HTTP unencrypted"],
+      },
+      ssl: { enabled: false, valid: false, status: "unencrypted" },
+      safeBrowsing: { checked: true, threatDetected: false },
+      virusTotal: { checked: true, maliciousCount: 0, totalEngines: 70 },
+      urlhaus: { available: true, match: false },
+      save: vi.fn().mockResolvedValue(true),
+    };
+
+    vi.spyOn(Scan, "findOne").mockResolvedValue(fakeScan as any);
+
+    const mockAiResponse = {
+      available: true,
+      summary: "This URL has a moderate security risk due to Punycode domain and HTTP connection.",
+      whatItMeans: "The domain uses a special format that can sometimes mimic legitimate websites, and the connection is unencrypted.",
+      whyItMatters: "Unencrypted connections allow attackers to intercept traffic, and fake domains can mislead users.",
+      keyIndicators: ["Punycode domain name", "HTTP unencrypted connection"],
+      recommendedActions: [
+        "Avoid entering passwords or personal information.",
+        "Verify the domain before opening the website.",
+        "Prefer the official website or HTTPS version."
+      ],
+      userSafetyMessage: "A clean provider result does not guarantee that a website is completely safe.",
+      threatType: "Potential Risk",
+      severity: "MODERATE",
+    };
+
+    const explainSpy = vi.spyOn(aiService, "generateSecurityExplanation").mockResolvedValue(mockAiResponse as any);
+
+    const { explainScanById } = await import("../src/services/analyzer.service");
+    const result = await explainScanById(mockScanId, mockUserId);
+
+    expect(explainSpy).toHaveBeenCalled();
+    const passedInput = explainSpy.mock.calls[0][0];
+    // Risk score and level are faithfully forwarded from Risk Engine
+    expect(passedInput.riskScore).toBe(44);
+    expect(passedInput.riskLevel).toBe("MODERATE");
+    expect(passedInput.confidence).toBe(80);
+
+    // URL passed to explanation was sanitized
+    expect(passedInput.url).toContain("token=[REDACTED]");
+    expect(passedInput.url).not.toContain("SECRET_AUTH");
+
+    // Output strictly preserves the authoritative risk score and level
+    expect(result.severity).toBe("MODERATE");
+    expect(fakeScan.riskScore).toBe(44);
+    expect(fakeScan.riskLevel).toBe("MODERATE");
+    expect(result.whatItMeans).toBe(mockAiResponse.whatItMeans);
+    expect(result.recommendedActions).toHaveLength(3);
+    expect(fakeScan.save).toHaveBeenCalled();
+  });
 });

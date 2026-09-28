@@ -9,22 +9,20 @@ import { checkUrlWithVirusTotal, VirusTotalResult } from "./virustotal.service";
 import { checkUrlWithUrlhaus, UrlhausResult } from "./threat-intelligence/urlhaus.service";
 import { calculateRiskScore } from "./risk-score.service";
 import { generateAnalysisSummary } from "./analysis-summary.service";
-import { generateSecurityExplanation } from "./ai-analysis.service";
+import { generateSecurityExplanation, sanitizeUrlForAI } from "./ai-analysis.service";
 import { AIAnalysisResult } from "./ai/ai.interface";
 import { createAutomaticIncidentReportForScan } from "./report.service";
 
 export interface PerformScanParams {
   rawUrl: string;
   userId: string | Types.ObjectId;
+  skipAi?: boolean;
 }
 
-export async function performUrlAnalysis(params: {
-  rawUrl: string;
-  userId: string | Types.ObjectId;
-}): Promise<IScan> {
+export async function performUrlAnalysis(params: PerformScanParams): Promise<IScan> {
   const startTime = Date.now();
   console.log(`[Analyzer] Started`);
-  const { rawUrl, userId } = params;
+  const { rawUrl, userId, skipAi } = params;
 
   // 1. Validation & Normalization
   const tValStart = Date.now();
@@ -241,26 +239,33 @@ export async function performUrlAnalysis(params: {
   // NOTE: Gemini receives structured metrics; it does NOT calculate or modify risk scores.
   let aiAnalysis: AIAnalysisResult;
   const tGeminiStart = Date.now();
-  try {
-    aiAnalysis = await generateSecurityExplanation({
-      url: normalizedUrl,
-      domain,
-      riskScore: risk.score,
-      riskLevel: risk.level,
-      confidence: risk.confidence,
-      overrideTriggered: risk.overrideTriggered,
-      overrideReason: risk.overrideReason,
-      overrideType: risk.overrideType,
-      calculationMethod: risk.calculationMethod,
-      factors: (risk.factors || []).map((f) => ({
-        name: f.name,
-        score: f.score,
-        impact: f.impact,
-        status: f.status,
-        reason: f.reason,
-        weight: f.weight,
-        contribution: f.contribution,
-      })),
+  if (skipAi) {
+    aiAnalysis = {
+      available: false,
+      summary: "AI explanation is being generated...",
+      error: "PENDING_GENERATION",
+    };
+  } else {
+    try {
+      aiAnalysis = await generateSecurityExplanation({
+        url: normalizedUrl,
+        domain,
+        riskScore: risk.score,
+        riskLevel: risk.level,
+        confidence: risk.confidence,
+        overrideTriggered: risk.overrideTriggered,
+        overrideReason: risk.overrideReason,
+        overrideType: risk.overrideType,
+        calculationMethod: risk.calculationMethod,
+        factors: (risk.factors || []).map((f) => ({
+          name: f.name,
+          score: f.score,
+          impact: f.impact,
+          status: f.status,
+          reason: f.reason,
+          weight: f.weight,
+          contribution: f.contribution,
+        })),
       securityEvidence: {
         ssl: {
           valid: ssl.valid,
@@ -320,6 +325,7 @@ export async function performUrlAnalysis(params: {
       summary: "The security analysis was completed, but the AI explanation is temporarily unavailable.",
       error: "AI analysis could not be generated.",
     };
+  }
   }
   console.log(`[Analyzer] Gemini completed: ${Date.now() - tGeminiStart} ms`);
 
@@ -426,11 +432,14 @@ export async function performUrlAnalysis(params: {
     aiAnalysis: {
       available: aiAnalysis.available,
       summary: aiAnalysis.summary,
+      whatItMeans: aiAnalysis.whatItMeans,
+      whyItMatters: aiAnalysis.whyItMatters,
       threatType: aiAnalysis.threatType,
       severity: risk.level, // strictly maintain risk.level as authoritative
       explanation: aiAnalysis.explanation,
       keyIndicators: aiAnalysis.keyIndicators,
       recommendedActions: aiAnalysis.recommendedActions,
+      userSafetyMessage: aiAnalysis.userSafetyMessage,
       confidenceNote: aiAnalysis.confidenceNote,
       generatedAt: aiAnalysis.generatedAt,
       model: aiAnalysis.model,
@@ -454,4 +463,81 @@ export async function performUrlAnalysis(params: {
   console.log(`[Analyzer] Total pipeline duration: ${Date.now() - startTime} ms`);
 
   return scanDoc;
+}
+
+/**
+ * Generates an on-demand or automatic Gemini AI explanation for an existing completed scan.
+ * Retains deterministic values as strictly authoritative.
+ */
+export async function explainScanById(scanId: string, userId: string): Promise<AIAnalysisResult> {
+  const scan = await Scan.findOne({
+    _id: new Types.ObjectId(scanId),
+    userId: new Types.ObjectId(userId),
+  });
+
+  if (!scan) {
+    throw new Error("Scan not found or access denied");
+  }
+
+  const factors = (scan.risk?.factors || scan.riskFactors || []).map((f: any) => ({
+    name: f.name,
+    score: f.score,
+    impact: f.impact,
+    status: f.status,
+    reason: f.reason,
+    weight: f.weight,
+    contribution: f.contribution,
+  }));
+
+  const sanitizedUrl = sanitizeUrlForAI(scan.normalizedUrl || scan.url);
+
+  const aiAnalysis = await generateSecurityExplanation({
+    url: sanitizedUrl,
+    domain: scan.domain,
+    riskScore: scan.riskScore,
+    riskLevel: scan.riskLevel,
+    confidence: scan.confidence,
+    overrideTriggered: scan.overrideTriggered,
+    overrideReason: scan.overrideReason,
+    overrideType: scan.overrideType,
+    calculationMethod: scan.calculationMethod,
+    factors,
+    securityEvidence: {
+      ssl: scan.ssl,
+      sslAnalysis: scan.sslAnalysis,
+      urlIntelligence: scan.urlIntelligence,
+      safeBrowsing: scan.safeBrowsing,
+      urlhaus: scan.urlhaus,
+      virusTotal: scan.virusTotal,
+      riskReasons: scan.risk?.reasons,
+    },
+  });
+
+  scan.aiAnalysis = {
+    available: aiAnalysis.available,
+    summary: aiAnalysis.summary,
+    whatItMeans: aiAnalysis.whatItMeans,
+    whyItMatters: aiAnalysis.whyItMatters,
+    threatType: aiAnalysis.threatType,
+    severity: scan.riskLevel, // strictly maintain authoritative risk level
+    explanation: aiAnalysis.explanation,
+    keyIndicators: aiAnalysis.keyIndicators,
+    recommendedActions: aiAnalysis.recommendedActions,
+    userSafetyMessage: aiAnalysis.userSafetyMessage,
+    confidenceNote: aiAnalysis.confidenceNote,
+    generatedAt: aiAnalysis.generatedAt || new Date(),
+    model: aiAnalysis.model,
+    error: aiAnalysis.error,
+  };
+
+  if (aiAnalysis.available && aiAnalysis.explanation) {
+    scan.aiExplanation = aiAnalysis.explanation;
+  }
+  if (aiAnalysis.available && aiAnalysis.recommendedActions && aiAnalysis.recommendedActions.length > 0) {
+    scan.recommendedActions = aiAnalysis.recommendedActions;
+  }
+
+  await scan.save();
+
+  return aiAnalysis;
 }

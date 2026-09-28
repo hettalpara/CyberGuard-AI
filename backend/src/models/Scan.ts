@@ -126,11 +126,14 @@ export interface IScan extends Document {
   aiAnalysis?: {
     available: boolean;
     summary: string;
+    whatItMeans?: string;
+    whyItMatters?: string;
     threatType?: string;
     severity?: string;
     explanation?: string;
     keyIndicators?: string[];
     recommendedActions?: string[];
+    userSafetyMessage?: string;
     confidenceNote?: string;
     generatedAt?: Date;
     model?: string;
@@ -306,11 +309,14 @@ const scanSchema = new Schema<IScan>(
     aiAnalysis: {
       available: { type: Boolean, default: false },
       summary: { type: String },
+      whatItMeans: { type: String },
+      whyItMatters: { type: String },
       threatType: { type: String },
       severity: { type: String },
       explanation: { type: String },
       keyIndicators: { type: [String], default: [] },
       recommendedActions: { type: [String], default: [] },
+      userSafetyMessage: { type: String },
       confidenceNote: { type: String },
       generatedAt: { type: Date },
       model: { type: String },

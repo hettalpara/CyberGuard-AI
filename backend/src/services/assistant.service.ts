@@ -148,15 +148,26 @@ export function formatScanContext(scan: IScan): AssistantChatContext {
       weight: f.weight,
       contribution: f.contribution,
     })),
+    securityEvidence: {
+      safeBrowsing: scan.safeBrowsing,
+      virusTotal: scan.virusTotal,
+      urlhaus: scan.urlhaus,
+      urlIntelligence: scan.urlIntelligence,
+      ssl: scan.sslAnalysis || scan.ssl,
+      findings: scan.findings,
+    },
     aiAnalysis: scan.aiAnalysis
       ? {
           available: scan.aiAnalysis.available,
           summary: scan.aiAnalysis.summary,
+          whatItMeans: scan.aiAnalysis.whatItMeans,
+          whyItMatters: scan.aiAnalysis.whyItMatters,
           threatType: scan.aiAnalysis.threatType,
           severity: scan.riskLevel, // strictly enforce authoritative risk level
-          explanation: scan.aiAnalysis.explanation,
+          explanation: scan.aiAnalysis.explanation || scan.aiAnalysis.whatItMeans,
           keyIndicators: scan.aiAnalysis.keyIndicators,
           recommendedActions: scan.aiAnalysis.recommendedActions,
+          userSafetyMessage: scan.aiAnalysis.userSafetyMessage,
         }
       : undefined,
   };

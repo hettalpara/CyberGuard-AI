@@ -2,7 +2,7 @@ import { Router, Response, NextFunction } from "express";
 import { Types } from "mongoose";
 import { Scan } from "../models/Scan";
 import { authMiddleware, AuthRequest } from "../middleware";
-import { performUrlAnalysis } from "../services/analyzer.service";
+import { performUrlAnalysis, explainScanById } from "../services/analyzer.service";
 import { analyzeEmail } from "../services/email-analyzer.service";
 import { analyzePhone } from "../services/phone-analyzer.service";
 
@@ -60,7 +60,7 @@ router.post("/scan", authMiddleware, scanRateLimiter, async (req: AuthRequest, r
       return;
     }
 
-    const { url } = req.body;
+    const { url, skipAi } = req.body;
     if (!url || typeof url !== "string" || url.trim() === "") {
       res.status(400).json({
         success: false,
@@ -72,6 +72,7 @@ router.post("/scan", authMiddleware, scanRateLimiter, async (req: AuthRequest, r
     const scanDoc = await performUrlAnalysis({
       rawUrl: url,
       userId: req.user.id,
+      skipAi: Boolean(skipAi),
     });
 
     res.status(200).json({
@@ -88,6 +89,43 @@ router.post("/scan", authMiddleware, scanRateLimiter, async (req: AuthRequest, r
       errorMsg.includes("required");
 
     res.status(isValidationErr ? 400 : 500).json({
+      success: false,
+      message: errorMsg,
+    });
+  }
+});
+
+// ============================================================================
+// POST /api/analyzer/:id/explain (Protected, Automatic or On-Demand Gemini Explanation)
+// ============================================================================
+router.post("/:id/explain", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user || !req.user.id) {
+      res.status(401).json({
+        success: false,
+        message: "Authentication token required",
+      });
+      return;
+    }
+
+    const scanId = String(req.params.id || "");
+    if (!Types.ObjectId.isValid(scanId)) {
+      res.status(404).json({
+        success: false,
+        message: "Scan not found",
+      });
+      return;
+    }
+
+    const aiAnalysis = await explainScanById(scanId, req.user.id);
+
+    res.status(200).json({
+      success: true,
+      aiAnalysis,
+    });
+  } catch (error: any) {
+    const errorMsg = error instanceof Error ? error.message : "Error generating AI explanation";
+    res.status(errorMsg.includes("not found") ? 404 : 500).json({
       success: false,
       message: errorMsg,
     });

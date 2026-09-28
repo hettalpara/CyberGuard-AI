@@ -80,11 +80,14 @@ export interface SecurityAnalysisInput {
 export interface AIAnalysisResult {
   available: boolean;
   summary: string;
+  whatItMeans?: string;
+  whyItMatters?: string;
   threatType?: string;
   severity?: string; // Descriptive only; does not overwrite authoritative riskLevel
   explanation?: string;
   keyIndicators?: string[];
   recommendedActions?: string[];
+  userSafetyMessage?: string;
   confidenceNote?: string;
   generatedAt?: Date;
   model?: string;
@@ -98,6 +101,14 @@ export interface AssistantChatContext {
   confidence?: number;
   factors?: SecurityFactorSummary[];
   aiAnalysis?: Partial<AIAnalysisResult>;
+  securityEvidence?: {
+    safeBrowsing?: any;
+    virusTotal?: any;
+    urlhaus?: any;
+    urlIntelligence?: any;
+    ssl?: any;
+    findings?: any[];
+  };
 }
 
 export interface AssistantChatInput {
