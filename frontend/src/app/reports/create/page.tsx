@@ -19,7 +19,6 @@ import {
   Sparkles,
   RefreshCw,
   FileText,
-  Calendar,
   ExternalLink,
   ChevronRight
 } from "lucide-react";
@@ -55,7 +54,7 @@ function CreateReportContent() {
   const [recentScans, setRecentScans] = useState<ScanResultData[]>([]);
   const [loadingRecent, setLoadingRecent] = useState(false);
 
-  // Form State
+  // Analyst form state
   const [incidentType, setIncidentType] = useState("Phishing");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -66,7 +65,7 @@ function CreateReportContent() {
   const [affectedAccount, setAffectedAccount] = useState("");
   const [userNotes, setUserNotes] = useState("");
 
-  // UI States
+  // UI state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -155,7 +154,7 @@ function CreateReportContent() {
     } catch (err: unknown) {
       const errMsg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
       setFormError(
-        errMsg || "Unable to save incident report. Please verify your inputs and try again."
+        errMsg || "Unable to save incident report. Your information has been preserved."
       );
     } finally {
       setSubmitting(false);
@@ -197,14 +196,13 @@ function CreateReportContent() {
   const urlhausAvail = scan?.urlhaus?.available !== false;
 
   const sslValid = !!(scan?.ssl?.valid || scan?.sslAnalysis?.certificateStatus === "VALID");
-  const sslProtocol = scan?.ssl?.protocol || scan?.sslAnalysis?.protocol || (sslValid ? "TLSv1.3" : "HTTP");
 
   return (
     <div className="app-cg">
       <Sidebar />
       <div className="main-cg">
         <Header />
-        <main className="content-cg" style={{ maxWidth: 1240, margin: "0 auto", width: "100%" }}>
+        <main className="content-cg" style={{ maxWidth: 1240, margin: "0 auto", width: "100%", padding: "24px 28px" }}>
           
           {/* Breadcrumb / Back Navigation */}
           <div style={{ marginBottom: 12 }}>
@@ -291,7 +289,7 @@ function CreateReportContent() {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <CheckCircle2 size={18} />
                 <div>
-                  <strong style={{ fontSize: 12 }}>Incident report created successfully.</strong>
+                  <strong style={{ display: "block", fontSize: 12 }}>Incident report created successfully.</strong>
                   <div style={{ fontSize: 11, opacity: 0.9 }}>
                     Report ID: <span style={{ fontFamily: "monospace", fontWeight: 700 }}>{createdReport.reportId || createdReport._id}</span>
                   </div>
@@ -406,8 +404,8 @@ function CreateReportContent() {
           ) : (
             <>
               {/* 1. LINKED THREAT SCAN CARD */}
-              <div className="card-cg" style={{ marginBottom: 20 }}>
-                <div className="card-head-cg">
+              <div className="card-cg" style={{ marginBottom: 24 }}>
+                <div className="card-head-cg" style={{ padding: "16px 20px" }}>
                   <div>
                     <span className="section-tag-cg">LINKED THREAT SCAN</span>
                     <div 
@@ -432,21 +430,21 @@ function CreateReportContent() {
                     <Link 
                       href={`/analyzer?url=${encodeURIComponent(scan?.url || "")}`} 
                       className="btn-cg" 
-                      style={{ padding: "4px 8px", fontSize: 10 }}
+                      style={{ padding: "5px 10px", fontSize: 11 }}
                       title="Inspect in Analyzer"
                     >
                       <ExternalLink size={12} />
-                      <span>Inspect</span>
+                      <span>Inspect Scan</span>
                     </Link>
                   </div>
                 </div>
 
-                <div className="card-body-cg">
+                <div className="card-body-cg" style={{ padding: "16px 20px" }}>
                   <div className="grid-cg grid3-cg">
                     <div 
                       className="stat-cg" 
                       style={{ 
-                        padding: "12px 16px", 
+                        padding: "14px 18px", 
                         minHeight: "auto", 
                         background: "var(--panel-2)", 
                         borderRadius: 8, 
@@ -456,10 +454,10 @@ function CreateReportContent() {
                       <div className="label-cg">RISK SCORE</div>
                       <div 
                         className="value-cg" 
-                        style={{ fontSize: 24, marginTop: 6, display: "flex", alignItems: "baseline", gap: 4 }}
+                        style={{ fontSize: 26, marginTop: 6, display: "flex", alignItems: "baseline", gap: 4 }}
                       >
                         <span style={{ color: riskColorHex }}>{riskScore}</span>
-                        <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>/ 100</span>
+                        <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 500 }}>/ 100</span>
                       </div>
                       <div className="sub-cg">Deterministic calculation</div>
                     </div>
@@ -467,7 +465,7 @@ function CreateReportContent() {
                     <div 
                       className="stat-cg" 
                       style={{ 
-                        padding: "12px 16px", 
+                        padding: "14px 18px", 
                         minHeight: "auto", 
                         background: "var(--panel-2)", 
                         borderRadius: 8, 
@@ -476,7 +474,7 @@ function CreateReportContent() {
                     >
                       <div className="label-cg">RISK LEVEL</div>
                       <div style={{ marginTop: 10 }}>
-                        <span className={`badge-cg ${badgeColor}`} style={{ fontSize: 11, padding: "5px 12px" }}>
+                        <span className={`badge-cg ${badgeColor}`} style={{ fontSize: 12, padding: "5px 14px" }}>
                           {threatLevel}
                         </span>
                       </div>
@@ -486,7 +484,7 @@ function CreateReportContent() {
                     <div 
                       className="stat-cg" 
                       style={{ 
-                        padding: "12px 16px", 
+                        padding: "14px 18px", 
                         minHeight: "auto", 
                         background: "var(--panel-2)", 
                         borderRadius: 8, 
@@ -494,7 +492,7 @@ function CreateReportContent() {
                       }}
                     >
                       <div className="label-cg">CONFIDENCE</div>
-                      <div className="value-cg" style={{ fontSize: 24, marginTop: 6 }}>
+                      <div className="value-cg" style={{ fontSize: 26, marginTop: 6 }}>
                         {confidence}%
                       </div>
                       <div className="sub-cg">Telemetry consensus rating</div>
@@ -504,8 +502,8 @@ function CreateReportContent() {
               </div>
 
               {/* 2. THREAT INTELLIGENCE EVIDENCE (AUTOMATIC SECURITY EVIDENCE) */}
-              <div className="card-cg" style={{ marginBottom: 20 }}>
-                <div className="card-head-cg">
+              <div className="card-cg" style={{ marginBottom: 24 }}>
+                <div className="card-head-cg" style={{ padding: "16px 20px" }}>
                   <div>
                     <span className="section-tag-cg">AUTOMATICALLY COLLECTED SECURITY EVIDENCE</span>
                     <h3 style={{ fontSize: 14 }}>Threat Intelligence Evidence</h3>
@@ -514,7 +512,7 @@ function CreateReportContent() {
                   <span className="badge-cg green">Connected</span>
                 </div>
 
-                <div className="card-body-cg">
+                <div className="card-body-cg" style={{ padding: "16px 20px" }}>
                   {/* Google Safe Browsing */}
                   <div className="provider-cg">
                     <div className="provider-icon-cg">
@@ -522,10 +520,10 @@ function CreateReportContent() {
                     </div>
                     <div className="provider-main-cg">
                       <strong>Google Safe Browsing</strong>
-                      <p>Threat database and malicious client feed telemetry</p>
+                      <p>Threat database result</p>
                     </div>
                     <span className={`badge-cg ${!gsbAvail ? "amber" : gsbClean ? "green" : "red"}`}>
-                      {!gsbAvail ? "UNAVAILABLE" : gsbClean ? "CLEAN" : "MALICIOUS"}
+                      {!gsbAvail ? "UNAVAILABLE" : gsbClean ? "CLEAN" : "THREAT DETECTED"}
                     </span>
                   </div>
 
@@ -536,7 +534,7 @@ function CreateReportContent() {
                     </div>
                     <div className="provider-main-cg">
                       <strong>VirusTotal</strong>
-                      <p>Multi-engine antivirus telemetry and vendor detections</p>
+                      <p>Detection engines reporting a match</p>
                     </div>
                     <span className={`badge-cg ${!vtAvail ? "amber" : vtMalicious > 0 ? "red" : "green"}`}>
                       {!vtAvail ? "UNAVAILABLE" : vtMalicious > 0 ? `${vtMalicious} / ${vtTotal}` : `0 / ${vtTotal}`}
@@ -550,7 +548,7 @@ function CreateReportContent() {
                     </div>
                     <div className="provider-main-cg">
                       <strong>URLhaus</strong>
-                      <p>Active malware distribution and payload repository feeds</p>
+                      <p>URL database result</p>
                     </div>
                     <span className={`badge-cg ${!urlhausAvail ? "amber" : urlhausMatch ? "red" : "green"}`}>
                       {!urlhausAvail ? "UNAVAILABLE" : urlhausMatch ? "MALWARE LISTED" : "CLEAN"}
@@ -563,11 +561,11 @@ function CreateReportContent() {
                       {sslValid ? <Lock size={16} /> : <Unlock size={16} style={{ color: "var(--amber)" }} />}
                     </div>
                     <div className="provider-main-cg">
-                      <strong>SSL / TLS Security</strong>
-                      <p>Connection encryption status & certificate validation</p>
+                      <strong>SSL / TLS</strong>
+                      <p>Connection security</p>
                     </div>
                     <span className={`badge-cg ${sslValid ? "green" : "amber"}`}>
-                      {sslValid ? "VALID HTTPS" : "HTTP / UNENCRYPTED"}
+                      {sslValid ? "VALID HTTPS" : "HTTP"}
                     </span>
                   </div>
 
@@ -579,7 +577,7 @@ function CreateReportContent() {
                       </div>
                       <div className="provider-main-cg">
                         <strong>URL Intelligence</strong>
-                        <p>Structural syntax, keyword entropy, and domain heuristic profiling</p>
+                        <p>Heuristic syntax & domain reputation telemetry</p>
                       </div>
                       <span className={`badge-cg ${scan.urlIntelligence.level === "HIGH" || scan.urlIntelligence.level === "CRITICAL" ? "red" : scan.urlIntelligence.level === "MODERATE" ? "amber" : "blue"}`}>
                         {scan.urlIntelligence.level || "ANALYZED"}
@@ -590,8 +588,8 @@ function CreateReportContent() {
               </div>
 
               {/* 3. INCIDENT DETAILS (ANALYST-PROVIDED) */}
-              <div className="card-cg" style={{ marginBottom: 20 }}>
-                <div className="card-head-cg">
+              <div className="card-cg" style={{ marginBottom: 24 }}>
+                <div className="card-head-cg" style={{ padding: "16px 20px" }}>
                   <div>
                     <span className="section-tag-cg">ANALYST-PROVIDED INCIDENT DETAILS</span>
                     <h3 style={{ fontSize: 14 }}>Incident Details</h3>
@@ -599,7 +597,7 @@ function CreateReportContent() {
                   </div>
                 </div>
 
-                <div className="card-body-cg" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div className="card-body-cg" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 16 }}>
                   {/* Two Column Layout on Desktop: Classification & Date */}
                   <div className="grid-cg grid2-cg">
                     <div>
@@ -755,8 +753,8 @@ function CreateReportContent() {
 
               {/* 4. GEMINI AI ANALYSIS (CONDITIONAL) */}
               {scan?.aiAnalysis?.summary && (
-                <div className="card-cg ai-panel-cg" style={{ marginBottom: 20 }}>
-                  <div className="card-head-cg" style={{ borderBottomColor: "rgba(155,108,255,0.22)" }}>
+                <div className="card-cg ai-panel-cg" style={{ marginBottom: 24 }}>
+                  <div className="card-head-cg" style={{ borderBottomColor: "rgba(155,108,255,0.22)", padding: "16px 20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <div className="provider-icon-cg" style={{ color: "var(--purple)", background: "rgba(155,108,255,0.12)" }}>
                         <Sparkles size={16} />
@@ -769,7 +767,7 @@ function CreateReportContent() {
                     <span className="badge-cg purple">AI EXPLANATION</span>
                   </div>
 
-                  <div className="card-body-cg" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  <div className="card-body-cg" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
                     <div>
                       <span className="section-tag-cg" style={{ color: "var(--purple)" }}>
                         SECURITY SUMMARY
