@@ -49,28 +49,28 @@ export interface SecurityAnalysisInput {
       evidence?: Record<string, unknown>;
     };
     safeBrowsing?: {
-      checked: boolean;
+      checked?: boolean;
       available?: boolean;
       status?: string;
-      threatDetected: boolean;
+      threatDetected?: boolean;
       threatTypes?: string[];
       score?: number | null;
       reason?: string;
     };
     urlhaus?: {
-      checked: boolean;
+      checked?: boolean;
       available?: boolean;
       status?: string;
-      match: boolean;
+      match?: boolean;
       threatType?: string;
       tags?: string[];
     };
     virusTotal?: {
-      checked: boolean;
-      available: boolean;
-      maliciousCount: number;
-      suspiciousCount: number;
-      totalEngines: number;
+      checked?: boolean;
+      available?: boolean;
+      maliciousCount?: number;
+      suspiciousCount?: number;
+      totalEngines?: number;
       detectionRatio?: string;
     };
     riskReasons?: string[];
