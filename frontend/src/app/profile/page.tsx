@@ -2,10 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { User as UserIcon, Mail, Shield, Key, LogOut, CheckCircle2, AlertCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
 import { ProtectedRoute } from "@/components/auth/protected-route";
@@ -75,7 +71,7 @@ export default function ProfilePage() {
       if (data.success && data.user) {
         updateUser(data.user);
         setProfileSuccess("Profile updated successfully!");
-        setTimeout(() => setProfileSuccess(null), 3000);
+        setTimeout(() => setProfileSuccess(null), 3500);
       }
     } catch (err: any) {
       const msg = err?.response?.data?.message || err?.message || "Failed to update profile";
@@ -142,201 +138,305 @@ export default function ProfilePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col lg:flex-row bg-slate-50 dark:bg-[#0B0F19]">
+      <div className="app-cg">
         <Sidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="main-cg">
           <Header />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto w-full space-y-6">
+          <main className="content-cg" style={{ maxWidth: 1240, margin: "0 auto", width: "100%" }}>
             
-            {/* Page Header */}
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-[10px] rounded border border-emerald-300 dark:border-emerald-800">
-                  SECURITY ANALYST IDENTITY
-                </span>
-                <span className="text-[11px] font-mono text-slate-500">
-                  Access Credentials & Account Metadata
-                </span>
+            {/* Page Title */}
+            <div className="page-title-cg" style={{ marginBottom: 22 }}>
+              <div>
+                <span className="section-tag-cg">SECURITY ANALYST IDENTITY</span>
+                <h1 style={{ fontSize: 24, fontWeight: 700 }}>Analyst Profile</h1>
+                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+                  Manage your credentials, platform permissions, and authentication passwords.
+                </p>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-mono font-black text-slate-900 dark:text-slate-100 tracking-tight">
-                Analyst Profile
-              </h1>
-              <p className="text-slate-500 text-xs sm:text-sm mt-0.5">
-                Manage your credentials, platform permissions, and authentication passwords.
-              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Identity Card */}
-              <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm p-6 flex flex-col items-center text-center space-y-4">
-                <Avatar className="h-20 w-20 border-2 border-emerald-500 rounded-xl">
-                  <AvatarFallback className="bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-xl rounded-xl">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h3 className="font-mono font-bold text-base text-slate-900 dark:text-slate-100">
-                    {name}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-mono mt-0.5">{email}</p>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 rounded-md text-xs font-mono font-semibold">
-                  <Shield className="w-3.5 h-3.5" /> Role: {role.toUpperCase()}
-                </div>
-                {createdAt && (
-                  <p className="text-[11px] text-slate-400 font-mono">
-                    Enrolled: {new Date(createdAt).toLocaleDateString()}
-                  </p>
-                )}
-                <Button 
-                  onClick={handleLogout}
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-xs font-mono mt-2 gap-2 cursor-pointer"
+            {/* Notifications */}
+            {profileError && (
+              <div 
+                className="notice-cg" 
+                style={{ 
+                  borderColor: "rgba(239,68,68,0.35)", 
+                  background: "rgba(239,68,68,0.08)", 
+                  color: "#ff7777", 
+                  marginBottom: 16 
+                }}
+              >
+                <AlertCircle size={15} style={{ verticalAlign: "middle", marginRight: 8 }} />
+                {profileError}
+              </div>
+            )}
+
+            {profileSuccess && (
+              <div 
+                className="notice-cg" 
+                style={{ 
+                  borderColor: "rgba(22,199,132,0.35)", 
+                  background: "rgba(22,199,132,0.08)", 
+                  color: "#50e3a4", 
+                  marginBottom: 16 
+                }}
+              >
+                <CheckCircle2 size={15} style={{ verticalAlign: "middle", marginRight: 8 }} />
+                {profileSuccess}
+              </div>
+            )}
+
+            {/* Profile Grid */}
+            <div className="grid-cg" style={{ gridTemplateColumns: "280px 1fr", gap: 20, marginBottom: 20 }}>
+              
+              {/* Identity Summary Card */}
+              <div className="card-cg" style={{ height: "fit-content" }}>
+                <div 
+                  className="card-body-cg" 
+                  style={{ 
+                    display: "flex", 
+                    flexDirection: "column", 
+                    alignItems: "center", 
+                    textAlign: "center", 
+                    padding: 24 
+                  }}
                 >
-                  <LogOut className="w-3.5 h-3.5" /> Sign Out
-                </Button>
-              </Card>
+                  <div 
+                    style={{ 
+                      width: 72, 
+                      height: 72, 
+                      borderRadius: 16, 
+                      background: "linear-gradient(145deg, #2774ff, #6a45ff)", 
+                      boxShadow: "0 8px 30px rgba(45,104,255,.28)", 
+                      color: "white", 
+                      display: "grid", 
+                      placeItems: "center", 
+                      fontSize: 24, 
+                      fontWeight: 800,
+                      marginBottom: 14
+                    }}
+                  >
+                    {initials}
+                  </div>
+                  <strong style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>
+                    {name}
+                  </strong>
+                  <span style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, wordBreak: "break-all" }}>
+                    {email}
+                  </span>
 
-              {/* Edit Details Card */}
-              <Card className="md:col-span-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm overflow-hidden">
-                <CardHeader className="py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
-                  <CardTitle className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                    Profile & Credentials
-                  </CardTitle>
-                  <CardDescription className="text-xs text-slate-500 dark:text-slate-400">
-                    Update analyst display name and work email
-                  </CardDescription>
-                </CardHeader>
+                  <div style={{ marginTop: 14 }}>
+                    <span className="badge-cg blue" style={{ fontSize: 10, padding: "5px 12px" }}>
+                      ROLE: {role.toUpperCase()}
+                    </span>
+                  </div>
 
-                <CardContent className="p-6 space-y-4">
-                  {profileError && (
-                    <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-lg flex items-center gap-2 font-mono">
-                      <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-                      <span>{profileError}</span>
-                    </div>
+                  {createdAt && (
+                    <span style={{ fontSize: 11, color: "var(--muted)", marginTop: 12 }}>
+                      Enrolled: {new Date(createdAt).toLocaleDateString()}
+                    </span>
                   )}
 
-                  {profileSuccess && (
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs rounded-lg flex items-center gap-2 font-mono">
-                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                      <span>{profileSuccess}</span>
-                    </div>
-                  )}
+                  <button 
+                    onClick={handleLogout}
+                    className="btn-cg"
+                    style={{ 
+                      width: "100%", 
+                      justifyContent: "center", 
+                      marginTop: 20, 
+                      borderColor: "rgba(239,68,68,0.3)", 
+                      color: "#ff7777" 
+                    }}
+                  >
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
 
-                  <form onSubmit={handleProfileUpdate} className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Edit Profile Card */}
+              <div className="card-cg">
+                <div className="card-head-cg">
+                  <div>
+                    <h3>Profile & Credentials</h3>
+                    <p>Update analyst display name and work email</p>
+                  </div>
+                </div>
+
+                <div className="card-body-cg">
+                  <form onSubmit={handleProfileUpdate} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    <div className="grid-cg grid2-cg">
                       <div>
-                        <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        <label 
+                          style={{ 
+                            display: "block", 
+                            fontSize: 11, 
+                            fontWeight: 700, 
+                            color: "var(--muted)", 
+                            textTransform: "uppercase", 
+                            letterSpacing: ".06em", 
+                            marginBottom: 6 
+                          }}
+                        >
                           Full Name
                         </label>
-                        <div className="relative">
-                          <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                          <Input 
-                            value={name} 
-                            onChange={(e) => setName(e.target.value)} 
-                            className="pl-9 bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-mono h-10 rounded-lg focus:ring-emerald-500" 
-                            required
-                          />
-                        </div>
+                        <input 
+                          type="text"
+                          value={name} 
+                          onChange={(e) => setName(e.target.value)} 
+                          className="input-cg"
+                          required
+                        />
                       </div>
+
                       <div>
-                        <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                        <label 
+                          style={{ 
+                            display: "block", 
+                            fontSize: 11, 
+                            fontWeight: 700, 
+                            color: "var(--muted)", 
+                            textTransform: "uppercase", 
+                            letterSpacing: ".06em", 
+                            marginBottom: 6 
+                          }}
+                        >
                           Email Address
                         </label>
-                        <div className="relative">
-                          <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                          <Input 
-                            value={email} 
-                            disabled
-                            className="pl-9 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-800 text-xs font-mono h-10 rounded-lg opacity-70 cursor-not-allowed" 
-                          />
-                        </div>
+                        <input 
+                          type="email"
+                          value={email} 
+                          disabled
+                          className="input-cg"
+                          style={{ opacity: 0.65, cursor: "not-allowed" }}
+                        />
                       </div>
                     </div>
 
-                    <div className="flex justify-end">
-                      <Button 
+                    <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                      <button 
                         type="submit" 
                         disabled={isUpdatingProfile}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-bold px-4 h-9 rounded-lg"
+                        className="btn-cg primary"
                       >
-                        {isUpdatingProfile ? "Saving..." : "Update Profile"}
-                      </Button>
+                        <span>{isUpdatingProfile ? "Saving..." : "Update Profile"}</span>
+                      </button>
                     </div>
                   </form>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+
             </div>
 
             {/* Password Management Card */}
-            <Card className="border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111827] shadow-sm overflow-hidden">
-              <CardHeader className="py-4 px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40">
-                <div className="flex items-center gap-2">
-                  <Key className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <CardTitle className="text-xs font-bold font-mono uppercase tracking-wider text-slate-800 dark:text-slate-200">
-                    Security Credentials
-                  </CardTitle>
+            <div className="card-cg">
+              <div className="card-head-cg">
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div className="provider-icon-cg">
+                    <Key size={16} />
+                  </div>
+                  <div>
+                    <h3>Security Credentials</h3>
+                    <p>Manage and update your master authentication password</p>
+                  </div>
                 </div>
-              </CardHeader>
+              </div>
 
-              <CardContent className="p-6">
+              <div className="card-body-cg">
                 {passwordError && (
-                  <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-700 dark:text-red-400 text-xs rounded-lg flex items-center gap-2 font-mono">
-                    <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
-                    <span>{passwordError}</span>
+                  <div 
+                    className="notice-cg" 
+                    style={{ 
+                      borderColor: "rgba(239,68,68,0.35)", 
+                      background: "rgba(239,68,68,0.08)", 
+                      color: "#ff7777", 
+                      marginBottom: 16 
+                    }}
+                  >
+                    <AlertCircle size={15} style={{ verticalAlign: "middle", marginRight: 8 }} />
+                    {passwordError}
                   </div>
                 )}
 
                 {passwordSuccess && (
-                  <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs rounded-lg flex items-center gap-2 font-mono">
-                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-500" />
-                    <span>{passwordSuccess}</span>
+                  <div 
+                    className="notice-cg" 
+                    style={{ 
+                      borderColor: "rgba(22,199,132,0.35)", 
+                      background: "rgba(22,199,132,0.08)", 
+                      color: "#50e3a4", 
+                      marginBottom: 16 
+                    }}
+                  >
+                    <CheckCircle2 size={15} style={{ verticalAlign: "middle", marginRight: 8 }} />
+                    {passwordSuccess}
                   </div>
                 )}
 
-                <form onSubmit={handlePasswordChange} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form onSubmit={handlePasswordChange} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div className="grid-cg grid2-cg">
                     <div>
-                      <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label 
+                        style={{ 
+                          display: "block", 
+                          fontSize: 11, 
+                          fontWeight: 700, 
+                          color: "var(--muted)", 
+                          textTransform: "uppercase", 
+                          letterSpacing: ".06em", 
+                          marginBottom: 6 
+                        }}
+                      >
                         Current Master Password
                       </label>
-                      <Input
+                      <input
                         type="password"
                         value={oldPassword}
                         onChange={(e) => setOldPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-mono h-10 rounded-lg focus:ring-emerald-500"
+                        className="input-cg"
                         required
                       />
                     </div>
+
                     <div>
-                      <label className="block text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      <label 
+                        style={{ 
+                          display: "block", 
+                          fontSize: 11, 
+                          fontWeight: 700, 
+                          color: "var(--muted)", 
+                          textTransform: "uppercase", 
+                          letterSpacing: ".06em", 
+                          marginBottom: 6 
+                        }}
+                      >
                         New Master Password (8+ chars)
                       </label>
-                      <Input
+                      <input
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-xs font-mono h-10 rounded-lg focus:ring-emerald-500"
+                        className="input-cg"
                         required
                       />
                     </div>
                   </div>
 
-                  <div className="flex justify-end">
-                    <Button
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+                    <button
                       type="submit"
                       disabled={isChangingPassword || !oldPassword || !newPassword}
-                      className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-800 text-xs font-mono font-bold px-4 h-9 rounded-lg"
+                      className="btn-cg primary"
                     >
-                      {isChangingPassword ? "Updating..." : "Update Master Password"}
-                    </Button>
+                      <span>{isChangingPassword ? "Updating..." : "Update Master Password"}</span>
+                    </button>
                   </div>
                 </form>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
+
           </main>
         </div>
       </div>
