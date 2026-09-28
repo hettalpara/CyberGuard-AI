@@ -13,10 +13,13 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           background: "radial-gradient(circle at 50% 20%, rgba(52,120,255,0.15), transparent 70%), var(--card)"
         }}
       >
-        <div className="relative z-10 flex w-full max-w-xl flex-1 items-center justify-center">
+        <div className="relative z-10 flex w-full max-w-xl flex-1 items-center justify-center min-h-0">
           <CyberIllustration />
         </div>
-        <div className="relative z-10 mt-4 max-w-md text-center">
+        <div 
+          className="relative z-10 mt-4 max-w-md text-center -translate-y-[15px]" 
+          style={{ transform: "translateY(-15px)" }}
+        >
           <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 text-[var(--primary)]">
             <Shield className="h-5 w-5" />
           </div>
