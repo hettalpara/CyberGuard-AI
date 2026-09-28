@@ -552,6 +552,19 @@ html.light input[type="date"].input-cg::-webkit-calendar-picker-indicator,
   filter: none;
 }
 
+/* Profile Page Single-Screen Layout */
+.profile-grid-cg {
+  display: grid;
+  grid-template-columns: 260px 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+@media (max-width: 1024px) {
+  .profile-grid-cg {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 1100px) { 
   .grid4-cg { grid-template-columns: repeat(2, 1fr); } 
