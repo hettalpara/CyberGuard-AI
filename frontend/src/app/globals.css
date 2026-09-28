@@ -587,3 +587,15 @@ html.light input[type="date"].input-cg::-webkit-calendar-picker-indicator,
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(143, 162, 189, 0.25); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(143, 162, 189, 0.45); }
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
